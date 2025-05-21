@@ -1,13 +1,13 @@
-See the [Scikit-HEP Developer introduction][skhep-dev-intro] for a detailed
-description of best practices for developing Scikit-HEP packages.
+See the [Scientific Python Developer Guide][spc-dev-intro] for a detailed
+description of best practices for developing scientific packages.
 
-[skhep-dev-intro]: https://scikit-hep.org/developer/intro
+[spc-dev-intro]: https://scientific-python-cookie.readthedocs.io/guide/intro
 
 # Quick development
 
 The fastest way to start with development is to use nox. If you don't have nox,
 you can use `pipx run nox` to run it without installing, or `pipx install nox`.
-If you don't have pipx (pip for applications), then you can install with with
+If you don't have pipx (pip for applications), then you can install with
 `pip install pipx` (the only case were installing an application with regular
 pip is reasonable). If you use macOS, then pipx and nox are both in brew, use
 `brew install pipx nox`.
@@ -18,8 +18,8 @@ specific jobs:
 
 ```console
 $ nox -s lint  # Lint only
-$ nox -s tests-3.9  # Python 3.9 tests only
-$ nox -s docs -- serve  # Build and serve the docs
+$ nox -s tests  # Python tests
+$ nox -s docs -- --serve  # Build and serve the docs
 $ nox -s build  # Make an SDist and wheel
 ```
 
@@ -64,6 +64,14 @@ Use pytest to run the unit checks:
 
 ```bash
 pytest
+```
+
+# Coverage
+
+Use pytest-cov to generate coverage reports:
+
+```bash
+pytest --cov=fasthep-cli
 ```
 
 # Building docs
