@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Callable, Iterator
 
 from importlib.metadata import distributions
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
 
 def __find_package_versions(
@@ -13,16 +14,18 @@ def __find_package_versions(
     """
     Find the versions of a list of packages
     """
-    for dist in distributions():
-        if filter_function(dist.metadata["Name"].lower()):
-            yield dist.metadata["Name"].lower(), dist.version
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        transient=True,
+    ) as progress:
+        task = progress.add_task("Finding packages...", total=0)
 
-
-def _find_package_versions(package_names: list[str]) -> list[tuple[str, str]]:
-    """
-    Find the versions of a list of packages
-    """
-    return sorted(list(__find_package_versions(lambda x: x in package_names)))
+        for dist in distributions():
+            progress.update(task, advance=1)
+            if filter_function(dist.metadata["Name"].lower()):
+                yield dist.metadata["Name"].lower(), dist.version
+        progress.update(task, completed=0)
 
 
 def _is_fasthep_package(package_name: str) -> bool:
@@ -40,4 +43,4 @@ def _find_fast_hep_packages() -> list[tuple[str, str]]:
     """
     Find all FAST-HEP packages
     """
-    return list(__find_package_versions(_is_fasthep_package))
+    return sorted(list(__find_package_versions(_is_fasthep_package)))
