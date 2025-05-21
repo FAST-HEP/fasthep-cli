@@ -1,6 +1,7 @@
 [build-system]
-requires = ["flit_core >=3.4"]
-build-backend = "flit_core.buildapi"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
 
 
 [project]
@@ -57,6 +58,11 @@ docs = [
 
 [project.urls]
 homepage = "https://github.com/FAST-HEP/fasthep-cli"
+
+
+[tool.hatch]
+version.source = "vcs"
+build.hooks.vcs.version-file = "src/fasthep_cli/_version.py"
 
 
 [tool.pytest.ini_options]
