@@ -1,4 +1,5 @@
 """Functions for connecting to fasthep-plotter"""
+
 from __future__ import annotations
 
 import os

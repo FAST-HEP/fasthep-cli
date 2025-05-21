@@ -1,4 +1,5 @@
-""" Functions for download command """
+"""Functions for download command"""
+
 from __future__ import annotations
 
 import json

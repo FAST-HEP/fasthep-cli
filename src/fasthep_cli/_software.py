@@ -1,21 +1,21 @@
 """Functions for finding FAST-HEP software"""
+
 from __future__ import annotations
 
 from typing import Callable, Iterator
 
-import pkg_resources
+from importlib.metadata import distributions
 
 
 def __find_package_versions(
-    filter_function: Callable[[str], bool]
+    filter_function: Callable[[str], bool],
 ) -> Iterator[tuple[str, str]]:
     """
     Find the versions of a list of packages
     """
-    installed_packages = list(pkg_resources.working_set)
-    for installed_package in installed_packages:
-        if filter_function(installed_package.key):
-            yield installed_package.key, installed_package.version
+    for dist in distributions():
+        if filter_function(dist.metadata["Name"].lower()):
+            yield dist.metadata["Name"].lower(), dist.version
 
 
 def _find_package_versions(package_names: list[str]) -> list[tuple[str, str]]:

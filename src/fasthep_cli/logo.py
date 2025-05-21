@@ -1,4 +1,5 @@
 """FAST-HEP logo and welcome text for console output"""
+
 from __future__ import annotations
 
 import copy

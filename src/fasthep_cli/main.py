@@ -1,4 +1,5 @@
-""" Entry point for fasthep command line interface """
+"""Entry point for fasthep command line interface"""
+
 from __future__ import annotations
 
 from enum import Enum
@@ -44,7 +45,7 @@ class DisplayFormats(str, Enum):
 def versions(
     display_format: DisplayFormats = typer.Option(
         "simple", "--display", "-d", help="Display format"
-    )
+    ),
 ) -> None:
     """Show versions of all found FAST-HEP packages"""
     separator = ": "
