@@ -6,6 +6,6 @@ fasthep-cli: A command line interface for the FAST-HEP tools (one to rule them a
 
 from __future__ import annotations
 
-__version__ = "0.1.2"
+from ._version import version as __version__
 
 __all__ = ("__version__",)
