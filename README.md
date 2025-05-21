@@ -23,3 +23,33 @@
 [rtd-link]:                 https://fasthep-cli.readthedocs.io/en/latest/?badge=latest
 [sk-badge]:                 https://scikit-hep.org/assets/images/Scikit--HEP-Project-blue.svg
 <!-- prettier-ignore-end -->
+
+A Command Line Interface (CLI) for the [FAST-HEP](https://fast-hep.github.io/)
+project. Includes simplified commands for the following packages:
+
+- [fasthep-curator](https://github.com/FAST-HEP/fasthep-curator)
+- [fasthep-flow](https://github.com/FAST-HEP/fasthep-flow)
+- [fasthep-gitlab](https://github.com/FAST-HEP/fasthep-gitlab)
+- [fasthep-plot](https://github.com/FAST-HEP/fasthep-plot)
+- [fasthep-validate](https://github.com/FAST-HEP/fasthep-validate)
+
+as well as a few other utilities (e.g. `download`, `versions`). All commands are
+bundled under the `fasthep` (or `fh`) namespace.
+
+## Installation
+
+You can install the package using `pip`:
+
+```bash
+pip install fasthep-cli
+```
+
+This package will not install any of the above packages. You need to install
+them separately if you want to use them. Alternatively, you can install all of
+them at once using the `fasthep` meta-package:
+
+```bash
+pip install fasthep[full]
+```
+
+for the full set of dependencies.
