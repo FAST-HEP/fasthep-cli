@@ -117,7 +117,7 @@ logo_runner: str = """
 
 welcome_text: str = """
 Welcome to the FAST-HEP command line interface
-For more information, please visit https://fast-hep.web.cern.ch/fast-hep/
+For more information, please visit https://fast-hep.github.io/
 """
 
 
