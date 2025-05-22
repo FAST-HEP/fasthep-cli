@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import copy
+import os
 
 # trying to imitate the font from
 # https://fonts.google.com/specimen/Press+Start+2P?preview.text=FAST-HEP&preview.text_type=custom
 
 
-logo_f: str = """
+logo_f_nominal: str = """
 █████████╗
 ███╔═════╝
 ███║
@@ -19,7 +20,16 @@ logo_f: str = """
 ╚══╝
 """
 
-logo_a: str = """
+logo_f_small: str = """
+█████╗
+██╔══╝
+████╗
+██╔═╝
+██║
+╚═╝
+"""
+
+logo_a_nominal: str = """
    █████╗
  ███╔══███╗
 ███╔╝   ███╗
@@ -28,10 +38,18 @@ logo_a: str = """
 ███║    ███║
 ███║    ███║
 ╚══╝    ╚══╝
-
 """
 
-logo_s: str = """
+logo_a_small: str = """
+  █████╗
+ ██╔══██╗
+██╔╝   ██╗
+█████████║
+██║    ██║
+╚═╝    ╚═╝
+"""
+
+logo_s_nominal: str = """
   ██████╗
 ███╔═══███╗
 ███║   ╚══╝
@@ -42,7 +60,17 @@ logo_s: str = """
   ╚═════╝
 """
 
-logo_t: str = """
+logo_s_small: str = """
+  ████╗
+██╔═══██╗
+ ╚███ ╚═╝
+  ╚═██╗
+███   ██╗
+╚═████╔═╝
+  ╚═══╝
+"""
+
+logo_t_nominal: str = """
 ███████████╗
 ╚═══███╔═══╝
     ███║
@@ -53,7 +81,16 @@ logo_t: str = """
     ╚══╝
 """
 
-logo_h: str = """
+logo_t_small: str = """
+ ████████╗
+ ╚══██╔══╝
+    ██║
+    ██║
+    ██║
+    ╚═╝
+"""
+
+logo_h_nominal: str = """
 ███╗    ███╗
 ███║    ███║
 ███║    ███║
@@ -64,7 +101,16 @@ logo_h: str = """
 ╚══╝    ╚══╝
 """
 
-logo_e: str = """
+logo_h_small: str = """
+██╗    ██╗
+██║    ██║
+█████████║
+██╔════██║
+██║    ██║
+╚═╝    ╚═╝
+"""
+
+logo_e_nominal: str = """
 ██████████╗
 ███╔══════╝
 ███║
@@ -75,7 +121,16 @@ logo_e: str = """
 ╚═════════╝
 """
 
-logo_p: str = """
+logo_e_small: str = """
+████████╗
+██╔═════╝
+████████╗
+██╔═════╝
+████████╗
+╚═══════╝
+"""
+
+logo_p_nominal: str = """
 █████████╗
 ███╔════███╗
 ███║    ███║
@@ -86,7 +141,16 @@ logo_p: str = """
 ╚══╝
 """
 
-logo_stripes: str = "\n".join(
+logo_p_small: str = """
+██████╗
+██╔══██╗
+██████╔╝
+██╔═══╝
+██║
+╚═╝
+"""
+
+logo_stripes_nominal: str = "\n".join(
     [
         " ",
         " ",
@@ -100,8 +164,20 @@ logo_stripes: str = "\n".join(
     ]
 )
 
+logo_stripes_small: str = "\n".join(
+    [
+        " ",
+        2 * " " + 50 * "=",
+        " ",
+        9 * " " + 14 * "=",
+        " ",
+        4 * " " + 16 * "=",
+        " ",
+    ]
+)
 
-logo_runner: str = """
+
+logo_runner_nominal: str = """
              ▄███▄
        ▄▄▄▄▄  ▀█▀ ▄
      ▄█▀  ████▄▄▄▀▀
@@ -111,6 +187,17 @@ logo_runner: str = """
  ▐▀▀▀▀▀▀   ██
            █▀
            █
+           ▀▀
+"""
+
+logo_runner_small: str = """
+            ▄███▄
+       ▄▄▄▄  ▀█▀ ▄
+     ▄█▀ ████▄▄▄▀▀
+       ▄██
+  ▄▄▄▄██▀██▄
+ ▐▀▀▀▀▀▀   ██
+           █▀
            ▀▀
 """
 
@@ -224,12 +311,27 @@ def merge_pieces(pieces: list[str], spacing: int = 2) -> MultiLineText:
 
 def get_logo() -> str:
     """Return the FAST-HEP logo"""
+    terminal_width = os.get_terminal_size().columns
+    variant = "small" if terminal_width < 120 else "nominal"
     space = "\n".join([" " * 11] * 9)
     merged = merge_pieces(
-        [space, logo_f, logo_a, logo_s, logo_t, space, logo_h, logo_e, logo_p]
+        [
+            space,
+            eval(f"logo_f_{variant}"),
+            eval(f"logo_a_{variant}"),
+            eval(f"logo_s_{variant}"),
+            eval(f"logo_t_{variant}"),
+            space,
+            eval(f"logo_h_{variant}"),
+            eval(f"logo_e_{variant}"),
+            eval(f"logo_p_{variant}"),
+        ]
     )
-    logo = merged.overlay(MultiLineText(logo_runner), offset=59)
-    stripes = MultiLineText(logo_stripes)
+    runner_offset = 59 if variant == "nominal" else 50
+    logo = merged.overlay(
+        MultiLineText(eval(f"logo_runner_{variant}")), offset=runner_offset
+    )
+    stripes = MultiLineText(eval(f"logo_stripes_{variant}"))
     logo = stripes.overlay(logo, offset=0)
     welcome = "\n".join([line.center(logo.width) for line in welcome_text.split("\n")])
     return str(logo) + welcome + "\n"
