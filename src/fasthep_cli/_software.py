@@ -39,8 +39,41 @@ def _is_fasthep_package(package_name: str) -> bool:
     return False
 
 
+def _is_hep_package(package_name: str) -> bool:
+    """Check if a package is a HEP package (list will always be incomplete)"""
+    # from https://scikit-hep.org/
+    basics = ["awkward", "hepunits", "ragged", "vector"]
+    data_manip = ["coffea", "formulate", "hepconvert", "uproot", "uproot_browser"]
+    histogramming = ["boost-histogram", "hist", "histoprint", "uhi"]
+    particles = ["decaylanguage", "particle"]
+    fitting = ["goofit", "iminuit", "pyhf"]
+    interfaces = ["fastjet", "pyhepmc", "pylhe"]
+    visualisation = ["mplhep", "vegascope"]
+    misc = ["cibuildwheel", "root", "fsspec-xrootd", "pybind11", "scikit-hep"]
+    testing = ["scikit-hep-testdata"]
+    hep_packages = (
+        basics
+        + data_manip
+        + histogramming
+        + particles
+        + fitting
+        + interfaces
+        + visualisation
+        + misc
+        + testing
+    )
+    return package_name in hep_packages
+
+
 def _find_fast_hep_packages() -> list[tuple[str, str]]:
     """
     Find all FAST-HEP packages
     """
     return sorted(list(__find_package_versions(_is_fasthep_package)))
+
+
+def _find_hep_packages() -> list[tuple[str, str]]:
+    """
+    Find all HEP packages
+    """
+    return sorted(list(__find_package_versions(_is_hep_package)))
