@@ -187,3 +187,8 @@ def plotter(
 def main() -> typer.Typer:
     """Entry point for fasthep command line interface"""
     return app()
+
+
+def main_fh() -> typer.Typer:
+    """Entry point for fasthep command line interface with 'fh' prefix"""
+    return app()

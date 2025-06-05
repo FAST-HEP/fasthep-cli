@@ -126,4 +126,4 @@ messages_control.disable = [
 
 [project.scripts]
 fasthep = "fasthep_cli.main:main"
-fh = "fasthep_cli.main:main"
+fh = "fasthep_cli.main:main_fh"
