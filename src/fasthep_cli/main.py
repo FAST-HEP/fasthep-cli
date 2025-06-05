@@ -25,6 +25,22 @@ app = typer.Typer()
 # where detail is one of [TRACE, TIMING]
 
 
+@app.callback()
+def main_callback(
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="Suppress logo"),
+) -> None:
+    """
+    Main callback for the FAST-HEP CLI.
+    Use --quiet to suppress logo output
+    """
+    if not quiet:
+        # we could also have `fh`` be quiet by default and `fasthep` the normal version
+        from .logo import get_logo
+
+        logo = get_logo()
+        typer.echo(logo)
+
+
 @app.command()
 def version() -> None:
     """
@@ -170,8 +186,4 @@ def plotter(
 
 def main() -> typer.Typer:
     """Entry point for fasthep command line interface"""
-    from .logo import get_logo
-
-    logo = get_logo()
-    typer.echo(logo)
     return app()
