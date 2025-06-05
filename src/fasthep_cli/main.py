@@ -12,7 +12,7 @@ from tabulate import tabulate
 # from .logger import console_handler, user_logger
 from . import __version__
 from ._download import download_from_json
-from ._software import _find_fast_hep_packages
+from ._software import _find_fast_hep_packages, _find_hep_packages
 
 app = typer.Typer()
 
@@ -39,6 +39,7 @@ class DisplayFormats(str, Enum):
     SIMPLE = "simple"
     PIP = "pip"
     TABLE = "table"
+    JSON = "json"
 
 
 @app.command()
@@ -46,27 +47,58 @@ def versions(
     display_format: DisplayFormats = typer.Option(
         "simple", "--display", "-d", help="Display format"
     ),
+    hep: bool = typer.Option(False, "--hep", "-H", help="Display HEP packages"),
 ) -> None:
     """Show versions of all found FAST-HEP packages"""
     separator = ": "
     if display_format == DisplayFormats.PIP:
         separator = "=="
 
-    if display_format in (DisplayFormats.SIMPLE, DisplayFormats.PIP):
-        for package, _version in _find_fast_hep_packages():
+    fasthep_packages = list(_find_fast_hep_packages())
+    hep_packages = [] if not hep else list(_find_hep_packages())
+
+    def print_simple(packagesList: list[tuple[str, str]]) -> None:
+        """Print packages in simple format"""
+        for package, _version in packagesList:
             rich.print(f"[blue]{package}[/]{separator}[magenta]{_version}[/]")
-    elif display_format == DisplayFormats.TABLE:
+
+    def print_table(packagesList: list[tuple[str, str]]) -> None:
+        """Print packages in table format"""
         headers = ["Package", "Version"]
-        table = list(_find_fast_hep_packages())
-        tablefmt = "github"
+        table = [[package, _version] for package, _version in packagesList]
         rich.print(
             tabulate(
                 table,
                 headers=headers,
-                tablefmt=tablefmt,
+                tablefmt="github",
                 colalign=("left", "right"),
             )
         )
+
+    if display_format in (DisplayFormats.SIMPLE, DisplayFormats.PIP):
+        print_simple(fasthep_packages)
+        if hep:
+            rich.print("\n[blue]HEP Packages:[/]")
+            print_simple(hep_packages)
+    elif display_format == DisplayFormats.TABLE:
+        print_table(fasthep_packages)
+        if hep:
+            rich.print("\n[blue]HEP Packages:[/]")
+            print_table(hep_packages)
+    elif display_format == DisplayFormats.JSON:
+        """Print packages in JSON format"""
+        import json
+
+        packages = {
+            "fasthep_packages": {
+                package: version for package, version in fasthep_packages
+            },
+        }
+        if hep:
+            packages["hep_packages"] = {
+                package: version for package, version in hep_packages
+            }
+        rich.print(json.dumps(packages, indent=2))
 
 
 @app.command()
