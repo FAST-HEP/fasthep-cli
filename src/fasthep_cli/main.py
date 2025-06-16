@@ -64,16 +64,11 @@ def versions(
     hep_packages = [] if not hep else list(find_hep_packages())
 
     if display_format == DisplayFormats.JSON:
-        """Print packages in JSON format"""
         packages = {
-            "fasthep_packages": {
-                package: version for package, version in fasthep_packages
-            },
+            "fasthep_packages": dict(fasthep_packages),
         }
         if hep:
-            packages["hep_packages"] = {
-                package: version for package, version in hep_packages
-            }
+            packages["hep_packages"] = dict(hep_packages)
         display(packages, display_format=display_format)
         return
     headers = ["Package", "Version"]
