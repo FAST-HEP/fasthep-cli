@@ -9,7 +9,11 @@ import os
 # https://fonts.google.com/specimen/Press+Start+2P?preview.text=FAST-HEP&preview.text_type=custom
 
 
-logo_f_nominal: str = """
+logo: dict[str, dict[str, str]] = {}
+logo["nominal"] = {}
+logo["small"] = {}
+
+logo["nominal"]["F"] = """
 █████████╗
 ███╔═════╝
 ███║
@@ -20,7 +24,7 @@ logo_f_nominal: str = """
 ╚══╝
 """
 
-logo_f_small: str = """
+logo["small"]["F"] = """
 █████╗
 ██╔══╝
 ████╗
@@ -29,7 +33,7 @@ logo_f_small: str = """
 ╚═╝
 """
 
-logo_a_nominal: str = """
+logo["nominal"]["A"] = """
    █████╗
  ███╔══███╗
 ███╔╝   ███╗
@@ -40,7 +44,7 @@ logo_a_nominal: str = """
 ╚══╝    ╚══╝
 """
 
-logo_a_small: str = """
+logo["small"]["A"] = """
   █████╗
  ██╔══██╗
 ██╔╝   ██╗
@@ -49,7 +53,7 @@ logo_a_small: str = """
 ╚═╝    ╚═╝
 """
 
-logo_s_nominal: str = """
+logo["nominal"]["S"] = """
   ██████╗
 ███╔═══███╗
 ███║   ╚══╝
@@ -60,7 +64,7 @@ logo_s_nominal: str = """
   ╚═════╝
 """
 
-logo_s_small: str = """
+logo["small"]["S"] = """
   ████╗
 ██╔═══██╗
  ╚███ ╚═╝
@@ -70,7 +74,7 @@ logo_s_small: str = """
   ╚═══╝
 """
 
-logo_t_nominal: str = """
+logo["nominal"]["T"] = """
 ███████████╗
 ╚═══███╔═══╝
     ███║
@@ -81,7 +85,7 @@ logo_t_nominal: str = """
     ╚══╝
 """
 
-logo_t_small: str = """
+logo["small"]["T"] = """
  ████████╗
  ╚══██╔══╝
     ██║
@@ -90,7 +94,7 @@ logo_t_small: str = """
     ╚═╝
 """
 
-logo_h_nominal: str = """
+logo["nominal"]["H"] = """
 ███╗    ███╗
 ███║    ███║
 ███║    ███║
@@ -101,7 +105,7 @@ logo_h_nominal: str = """
 ╚══╝    ╚══╝
 """
 
-logo_h_small: str = """
+logo["small"]["H"] = """
 ██╗    ██╗
 ██║    ██║
 █████████║
@@ -110,7 +114,7 @@ logo_h_small: str = """
 ╚═╝    ╚═╝
 """
 
-logo_e_nominal: str = """
+logo["nominal"]["E"] = """
 ██████████╗
 ███╔══════╝
 ███║
@@ -121,7 +125,7 @@ logo_e_nominal: str = """
 ╚═════════╝
 """
 
-logo_e_small: str = """
+logo["small"]["E"] = """
 ████████╗
 ██╔═════╝
 ████████╗
@@ -130,7 +134,7 @@ logo_e_small: str = """
 ╚═══════╝
 """
 
-logo_p_nominal: str = """
+logo["nominal"]["P"] = """
 █████████╗
 ███╔════███╗
 ███║    ███║
@@ -141,7 +145,7 @@ logo_p_nominal: str = """
 ╚══╝
 """
 
-logo_p_small: str = """
+logo["small"]["P"] = """
 ██████╗
 ██╔══██╗
 ██████╔╝
@@ -150,7 +154,7 @@ logo_p_small: str = """
 ╚═╝
 """
 
-logo_stripes_nominal: str = "\n".join(
+logo["nominal"]["stripes"] = "\n".join(
     [
         " ",
         " ",
@@ -164,7 +168,7 @@ logo_stripes_nominal: str = "\n".join(
     ]
 )
 
-logo_stripes_small: str = "\n".join(
+logo["small"]["stripes"] = "\n".join(
     [
         " ",
         2 * " " + 50 * "=",
@@ -177,7 +181,7 @@ logo_stripes_small: str = "\n".join(
 )
 
 
-logo_runner_nominal: str = """
+logo["nominal"]["runner"] = """
              ▄███▄
        ▄▄▄▄▄  ▀█▀ ▄
      ▄█▀  ████▄▄▄▀▀
@@ -190,7 +194,7 @@ logo_runner_nominal: str = """
            ▀▀
 """
 
-logo_runner_small: str = """
+logo["small"]["runner"] = """
             ▄███▄
        ▄▄▄▄  ▀█▀ ▄
      ▄█▀ ████▄▄▄▀▀
@@ -317,24 +321,26 @@ def get_logo() -> str:
     merged = merge_pieces(
         [
             space,
-            eval(f"logo_f_{variant}"),
-            eval(f"logo_a_{variant}"),
-            eval(f"logo_s_{variant}"),
-            eval(f"logo_t_{variant}"),
+            logo[variant]["F"],
+            logo[variant]["A"],
+            logo[variant]["S"],
+            logo[variant]["T"],
             space,
-            eval(f"logo_h_{variant}"),
-            eval(f"logo_e_{variant}"),
-            eval(f"logo_p_{variant}"),
+            logo[variant]["H"],
+            logo[variant]["E"],
+            logo[variant]["P"],
         ]
     )
     runner_offset = 59 if variant == "nominal" else 50
-    logo = merged.overlay(
-        MultiLineText(eval(f"logo_runner_{variant}")), offset=runner_offset
+    logo_str = merged.overlay(
+        MultiLineText(logo[variant]["runner"]), offset=runner_offset
     )
-    stripes = MultiLineText(eval(f"logo_stripes_{variant}"))
-    logo = stripes.overlay(logo, offset=0)
-    welcome = "\n".join([line.center(logo.width) for line in welcome_text.split("\n")])
-    return str(logo) + welcome + "\n"
+    stripes = MultiLineText(logo[variant]["stripes"])
+    logo_str = stripes.overlay(logo_str, offset=0)
+    welcome = "\n".join(
+        [line.center(logo_str.width) for line in welcome_text.split("\n")]
+    )
+    return str(logo_str) + welcome + "\n"
 
 
 if __name__ == "__main__":
