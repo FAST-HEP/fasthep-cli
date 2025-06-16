@@ -2,19 +2,22 @@
 
 from __future__ import annotations
 
-from enum import Enum
 from pathlib import Path
 
 import rich
 import typer
-from tabulate import tabulate
 
-# from .logger import console_handler, user_logger
+from fasthep_toolbench.display.console import DisplayFormats, display
+from fasthep_toolbench.http import download_from_json
+from fasthep_toolbench.package import find_fast_hep_packages, find_hep_packages
+
 from . import __version__
-from ._download import download_from_json
-from ._software import _find_fast_hep_packages, _find_hep_packages
+from ._curator import app as curator_app
 
 app = typer.Typer()
+app.add_typer(
+    curator_app, name="curator", help="Commands for FAST-HEP curator operations"
+)
 
 # TODO: Add a logger to the CLI
 # 1. implement a callback for the logger setup
@@ -49,15 +52,6 @@ def version() -> None:
     rich.print(f"[blue]FAST-HEP CLI Version[/]: [magenta]{__version__}[/]")
 
 
-class DisplayFormats(str, Enum):
-    """Display formats for command output"""
-
-    SIMPLE = "simple"
-    PIP = "pip"
-    TABLE = "table"
-    JSON = "json"
-
-
 @app.command()
 def versions(
     display_format: DisplayFormats = typer.Option(
@@ -65,46 +59,12 @@ def versions(
     ),
     hep: bool = typer.Option(False, "--hep", "-H", help="Display HEP packages"),
 ) -> None:
-    """Show versions of all found FAST-HEP packages"""
-    separator = ": "
-    if display_format == DisplayFormats.PIP:
-        separator = "=="
+    """Show versions of all found FAST-HEP and HEP packages"""
+    fasthep_packages = list(find_fast_hep_packages())
+    hep_packages = [] if not hep else list(find_hep_packages())
 
-    fasthep_packages = list(_find_fast_hep_packages())
-    hep_packages = [] if not hep else list(_find_hep_packages())
-
-    def print_simple(packagesList: list[tuple[str, str]]) -> None:
-        """Print packages in simple format"""
-        for package, _version in packagesList:
-            rich.print(f"[blue]{package}[/]{separator}[magenta]{_version}[/]")
-
-    def print_table(packagesList: list[tuple[str, str]]) -> None:
-        """Print packages in table format"""
-        headers = ["Package", "Version"]
-        table = [[package, _version] for package, _version in packagesList]
-        rich.print(
-            tabulate(
-                table,
-                headers=headers,
-                tablefmt="github",
-                colalign=("left", "right"),
-            )
-        )
-
-    if display_format in (DisplayFormats.SIMPLE, DisplayFormats.PIP):
-        print_simple(fasthep_packages)
-        if hep:
-            rich.print("\n[blue]HEP Packages:[/]")
-            print_simple(hep_packages)
-    elif display_format == DisplayFormats.TABLE:
-        print_table(fasthep_packages)
-        if hep:
-            rich.print("\n[blue]HEP Packages:[/]")
-            print_table(hep_packages)
-    elif display_format == DisplayFormats.JSON:
+    if display_format == DisplayFormats.JSON:
         """Print packages in JSON format"""
-        import json
-
         packages = {
             "fasthep_packages": {
                 package: version for package, version in fasthep_packages
@@ -114,14 +74,19 @@ def versions(
             packages["hep_packages"] = {
                 package: version for package, version in hep_packages
             }
-        rich.print(json.dumps(packages, indent=2))
+        display(packages, display_format=display_format)
+        return
+    headers = ["Package", "Version"]
+    display(fasthep_packages, "FAST-HEP Packages", headers, display_format)
+    if hep:
+        display(hep_packages, "HEP Packages", headers, display_format)
 
 
 @app.command()
 def download(
     json_input: str = typer.Option(None, "--json", "-j", help="JSON input file"),
     destination: str = typer.Option(
-        None, "--destination", "-d", help="Destination directory"
+        "downloads", "--destination", "-d", help="Destination directory"
     ),
     force: bool = typer.Option(
         False, "--force", "-f", help="Force download; overwriting existing files"
