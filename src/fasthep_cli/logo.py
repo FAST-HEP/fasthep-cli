@@ -209,6 +209,7 @@ logo["small"]["runner"] = """
 welcome_text: str = """
 Welcome to the FAST-HEP command line interface
 For more information, please visit https://fast-hep.github.io/
+Note: you can use the `--quiet` or `-q` option to suppress this message.
 """
 
 
