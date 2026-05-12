@@ -151,8 +151,8 @@ def _write_author(tmp_path: Path) -> Path:
         "registry": {
             "sources": {
                 "root_tree": {
-                    "spec": "tests.helpers:ROOT_TREE_SOURCE_SPEC",
-                    "impl": "tests.helpers:run_root_tree_source",
+                    "spec": "fasthep_cli.testing:ROOT_TREE_SOURCE_SPEC",
+                    "impl": "fasthep_cli.testing:run_root_tree_source",
                 }
             }
         },

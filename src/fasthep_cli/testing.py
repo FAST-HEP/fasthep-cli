@@ -9,7 +9,11 @@ ROOT_TREE_SOURCE_SPEC = {
 }
 
 
-def run_root_tree_source(*, ctx: dict[str, Any] | None = None, **params: Any) -> dict[str, Any]:
+def run_root_tree_source(
+    *,
+    ctx: dict[str, Any] | None = None,
+    **params: Any,
+) -> dict[str, Any]:
     return {
         "ctx": dict(ctx or {}),
         "params": dict(params),
