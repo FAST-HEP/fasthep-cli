@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fasthep-cli"
+version = "0.1.0"
+description = "Thin FAST-HEP command line entry point."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fasthep-flow",
+    "rich",
+    "typer",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+]
+
+[project.scripts]
+fasthep = "fasthep_cli.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
