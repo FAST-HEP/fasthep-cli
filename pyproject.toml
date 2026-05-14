@@ -15,7 +15,7 @@ classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
+    "License :: OSI Approved :: BSD License",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -55,6 +55,9 @@ include = [
     "src/fasthep_cli",
     "README.md",
     "pyproject.toml",
+]
+extend-exclude = [
+  "src/fasthep_curator/_version.py",
 ]
 
 [tool.ruff]
