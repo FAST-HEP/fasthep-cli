@@ -10,6 +10,7 @@ from typer.testing import CliRunner
 import fasthep_cli
 import fasthep_cli.app as cli_app
 from fasthep_cli.app import app
+from fasthep_cli.testing import strip_ansi
 
 runner = CliRunner(env={"FASTHEP_NO_LOGO": "1"})
 
@@ -43,7 +44,7 @@ def test_version_command_prints_cli_version() -> None:
 
     assert result.exit_code == 0, result.output
     assert "fasthep-cli" in result.output
-    assert fasthep_cli.__version__ in result.output
+    assert fasthep_cli.__version__ in strip_ansi(result.output)
 
 
 def test_versions_json_is_parseable(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -61,7 +62,7 @@ def test_versions_json_is_parseable(monkeypatch: pytest.MonkeyPatch) -> None:
     result = runner.invoke(app, ["versions", "--display", "json", "--hep"])
 
     assert result.exit_code == 0, result.output
-    parsed = json.loads(result.output)
+    parsed = json.loads(strip_ansi(result.output))
     assert parsed == {
         "fasthep_packages": {"fasthep-cli": "1.2.3"},
         "hep_packages": {"hist": "2.8.0"},
