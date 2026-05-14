@@ -16,9 +16,23 @@ pre-commit = "*"
 codespell = "*"
 
 [pypi-dependencies]
-fasthep-flow = { path = "../fasthep-flow", editable = true }
-fasthep-toolbench = { path = "../fasthep-toolbench", editable = true }
+fasthep-flow = ">=2026.5.0"
+fasthep-toolbench = "*"
 fasthep-cli = { path = ".", editable = true }
+
+[environments]
+py311 = ["py311"]
+py313 = ["py313"]
+py314 = ["py314"]
+
+[feature.py311.dependencies]
+python = "3.11.*"
+
+[feature.py313.dependencies]
+python = "3.13.*"
+
+[feature.py314.dependencies]
+python = "3.14.*"
 
 [tasks]
 format = "ruff format src tests"
