@@ -3,7 +3,6 @@ from __future__ import annotations
 from pathlib import Path
 
 import typer
-
 from hepflow.api import normalise_author_file
 
 

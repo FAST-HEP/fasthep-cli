@@ -3,13 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import typer
-
 from hepflow.api import init_project
 
 
 def init_command(
     target_dir: Path = typer.Option(
-        Path("."),
+        Path(),
         "--target-dir",
         help="Project directory where .hepflow/profiles should be created.",
     ),

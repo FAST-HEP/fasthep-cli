@@ -25,6 +25,7 @@ classifiers = [
 ]
 dependencies = [
     "fasthep-flow",
+    "fasthep-toolbench",
     "rich",
     "typer",
 ]
@@ -90,6 +91,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
+"src/fasthep_cli/app.py" = ["B008"]
+"src/fasthep_cli/commands/*.py" = ["B008"]
 "tests/**" = ["T20", "ARG"]
 
 [tool.pytest.ini_options]

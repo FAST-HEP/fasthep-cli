@@ -261,9 +261,9 @@ class MultiLineText:
             self.pad_height(bottom=abs(diff_height))
 
         lines = []
-        for line1, line2 in zip(self.lines, text.lines):
-            line1 += " " * spacing + line2
-            lines.append(line1)
+        for line1, line2 in zip(self.lines, text.lines, strict=False):
+            line = line1 + " " * spacing + line2
+            lines.append(line)
         self.lines = lines
 
     def overlay(self, text: MultiLineText, offset: int = 0) -> MultiLineText:

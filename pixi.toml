@@ -17,6 +17,7 @@ codespell = "*"
 
 [pypi-dependencies]
 fasthep-flow = { path = "../fasthep-flow", editable = true }
+fasthep-toolbench = { path = "../fasthep-toolbench", editable = true }
 fasthep-cli = { path = ".", editable = true }
 
 [tasks]
