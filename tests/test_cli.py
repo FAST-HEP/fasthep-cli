@@ -9,6 +9,7 @@ from typer.testing import CliRunner
 
 import fasthep_cli
 import fasthep_cli.app as cli_app
+import fasthep_cli.commands.init as init_command_module
 from fasthep_cli.app import app
 from fasthep_cli.testing import strip_ansi
 
@@ -113,6 +114,64 @@ def test_init_command_smoke(tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
     assert (tmp_path / ".fasthep" / "profiles" / "hepflow" / "registry.yaml").exists()
     assert not (tmp_path / ".hepflow").exists()
+
+
+def test_init_command_accepts_repeatable_includes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[Path, bool, list[str]]] = []
+
+    class FakeResult:
+        def __init__(self) -> None:
+            self.profile_dir = tmp_path / ".fasthep" / "profiles" / "hepflow"
+            self.created_profile_dir = True
+            self.copied: list[Path] = []
+            self.overwritten: list[Path] = []
+            self.skipped_existing: list[Path] = []
+            self.written: list[Path] = []
+
+    def fake_init_project(
+        *,
+        target_dir: Path,
+        force: bool,
+        include: list[str],
+    ) -> FakeResult:
+        calls.append((target_dir, force, include))
+        return FakeResult()
+
+    monkeypatch.setattr(init_command_module, "init_project", fake_init_project)
+
+    result = runner.invoke(
+        app,
+        [
+            "init",
+            "--target-dir",
+            str(tmp_path),
+            "--include",
+            "fasthep_workshop:registry",
+            "--include",
+            "./profiles/custom.yaml",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert calls == [
+        (
+            tmp_path,
+            False,
+            ["fasthep_workshop:registry", "./profiles/custom.yaml"],
+        )
+    ]
+
+
+def test_init_help_documents_include_examples() -> None:
+    result = runner.invoke(app, ["init", "--help"])
+
+    assert result.exit_code == 0, result.output
+    assert "--include" in strip_ansi(result.output)
+    assert "fasthep_workshop:registry" in strip_ansi(result.output)
+    assert "./profiles/custom.yaml" in strip_ansi(result.output)
 
 
 def test_normalise_command_smoke(tmp_path: Path) -> None:

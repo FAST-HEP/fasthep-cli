@@ -10,7 +10,16 @@ def init_command(
     target_dir: Path = typer.Option(
         Path(),
         "--target-dir",
-        help="Project directory where .fasthep/profiles/hepflow should be created.",
+        help="Project directory where .fasthep/profiles should be created.",
+    ),
+    include: list[str] = typer.Option(
+        [],
+        "--include",
+        help=(
+            "Profile reference to copy into the scaffold. Repeat for multiple "
+            "profiles, for example fasthep_workshop:registry or "
+            "./profiles/custom.yaml."
+        ),
     ),
     force: bool = typer.Option(
         False,
@@ -18,7 +27,7 @@ def init_command(
         help="Overwrite existing copied profile template files.",
     ),
 ) -> None:
-    result = init_project(target_dir=target_dir, force=force)
+    result = init_project(target_dir=target_dir, force=force, include=include)
     if result.created_profile_dir:
         typer.echo(f"Created {result.profile_dir}")
     else:

@@ -114,6 +114,13 @@ pixi run ci
 
 ## Example commands
 
+Scaffold project-local profiles:
+
+```bash
+fasthep init --include fasthep_workshop:registry
+fasthep init --include ./profiles/custom.yaml
+```
+
 Compile a workflow:
 
 ```bash
