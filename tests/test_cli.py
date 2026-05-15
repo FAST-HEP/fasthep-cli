@@ -111,7 +111,8 @@ def test_init_command_smoke(tmp_path: Path) -> None:
     result = runner.invoke(app, ["init", "--target-dir", str(tmp_path)])
 
     assert result.exit_code == 0, result.output
-    assert (tmp_path / ".hepflow" / "profiles" / "registry.yaml").exists()
+    assert (tmp_path / ".fasthep" / "profiles" / "hepflow" / "registry.yaml").exists()
+    assert not (tmp_path / ".hepflow").exists()
 
 
 def test_normalise_command_smoke(tmp_path: Path) -> None:

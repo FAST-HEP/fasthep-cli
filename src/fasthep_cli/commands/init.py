@@ -10,7 +10,7 @@ def init_command(
     target_dir: Path = typer.Option(
         Path(),
         "--target-dir",
-        help="Project directory where .hepflow/profiles should be created.",
+        help="Project directory where .fasthep/profiles/hepflow should be created.",
     ),
     force: bool = typer.Option(
         False,
