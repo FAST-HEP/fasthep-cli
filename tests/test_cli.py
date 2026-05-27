@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import importlib
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -165,11 +167,91 @@ def test_init_command_accepts_repeatable_includes(
     ]
 
 
+def test_init_command_hep_profile_copies_importable_package_profiles(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package_name = "fake_fasthep_carpenter"
+    _write_profile_package(
+        tmp_path,
+        package_name,
+        {
+            "registry.yaml": "name: registry\n",
+            "custom-profile.yaml": "name: custom\n",
+        },
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    monkeypatch.setattr(init_command_module, "HEP_PROFILE_PACKAGES", [package_name])
+    importlib.invalidate_caches()
+
+    result = runner.invoke(
+        app,
+        ["init", "--target-dir", str(tmp_path), "--profile", "HEP"],
+    )
+
+    assert result.exit_code == 0, result.output
+    profile_dir = tmp_path / ".fasthep" / "profiles" / package_name
+    assert (profile_dir / "registry.yaml").read_text(encoding="utf-8") == (
+        "name: registry\n"
+    )
+    assert (profile_dir / "custom-profile.yaml").read_text(encoding="utf-8") == (
+        "name: custom\n"
+    )
+    assert f"Wrote {profile_dir / 'registry.yaml'}" in result.output
+    assert f"Wrote {profile_dir / 'custom-profile.yaml'}" in result.output
+
+
+def test_init_command_hep_profile_warns_for_missing_package(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        init_command_module,
+        "HEP_PROFILE_PACKAGES",
+        ["missing_fasthep_render"],
+    )
+
+    result = runner.invoke(
+        app,
+        ["init", "--target-dir", str(tmp_path), "--profile", "HEP"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Warning: profile package not found: missing_fasthep_render" in result.output
+    assert (tmp_path / ".fasthep" / "profiles" / "hepflow" / "registry.yaml").exists()
+
+
+def test_init_command_hep_profile_is_case_insensitive(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    package_name = "fake_fasthep_curator"
+    _write_profile_package(
+        tmp_path,
+        package_name,
+        {"registry.yaml": "name: registry\n"},
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    monkeypatch.setattr(init_command_module, "HEP_PROFILE_PACKAGES", [package_name])
+    importlib.invalidate_caches()
+
+    result = runner.invoke(
+        app,
+        ["init", "--target-dir", str(tmp_path), "--profile", "hep"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert (
+        tmp_path / ".fasthep" / "profiles" / package_name / "registry.yaml"
+    ).exists()
+
+
 def test_init_help_documents_include_examples() -> None:
     result = runner.invoke(app, ["init", "--help"])
 
     assert result.exit_code == 0, result.output
     assert "--include" in strip_ansi(result.output)
+    assert "--profile" in strip_ansi(result.output)
     assert "fasthep_workshop:registry" in strip_ansi(result.output)
     assert "./profiles/custom.yaml" in strip_ansi(result.output)
 
@@ -306,6 +388,20 @@ def _write_author(tmp_path: Path) -> Path:
     path = tmp_path / "author.yaml"
     path.write_text(yaml.safe_dump(author, sort_keys=False), encoding="utf-8")
     return path
+
+
+def _write_profile_package(
+    tmp_path: Path,
+    package_name: str,
+    profiles: dict[str, str],
+) -> None:
+    package_dir = tmp_path / package_name
+    profiles_dir = package_dir / "profiles"
+    profiles_dir.mkdir(parents=True)
+    (package_dir / "__init__.py").write_text("", encoding="utf-8")
+    for filename, content in profiles.items():
+        (profiles_dir / filename).write_text(content, encoding="utf-8")
+    sys.modules.pop(package_name, None)
 
 
 def _write_empty_plan(tmp_path: Path) -> Path:
