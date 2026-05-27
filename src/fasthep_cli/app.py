@@ -18,6 +18,7 @@ from fasthep_cli.commands.diff import diff_command
 from fasthep_cli.commands.init import init_command
 from fasthep_cli.commands.make_plan import make_plan_command
 from fasthep_cli.commands.normalise import normalise_command
+from fasthep_cli.commands.render import render_app
 from fasthep_cli.commands.run import run_command
 from fasthep_cli.commands.run_plan import run_plan_command
 from fasthep_cli.commands.show_defaults import show_defaults_command
@@ -123,6 +124,7 @@ app.command("run-plan")(run_plan_command)
 app.command("run")(run_command)
 app.command("diff")(diff_command)
 app.command("show-defaults")(show_defaults_command)
+app.add_typer(render_app, name="render")
 
 
 def _maybe_print_logo() -> None:

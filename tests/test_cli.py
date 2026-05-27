@@ -5,11 +5,13 @@ from pathlib import Path
 
 import pytest
 import yaml
+from hepflow.model.render import RenderStatus
 from typer.testing import CliRunner
 
 import fasthep_cli
 import fasthep_cli.app as cli_app
 import fasthep_cli.commands.init as init_command_module
+import fasthep_cli.commands.render as render_command_module
 from fasthep_cli.app import app
 from fasthep_cli.testing import strip_ansi
 
@@ -213,6 +215,116 @@ def test_init_help_documents_include_examples() -> None:
     assert "--profile" in strip_ansi(result.output)
     assert "fasthep_workshop:registry" in strip_ansi(result.output)
     assert "./profiles/custom.yaml" in strip_ansi(result.output)
+
+
+def test_render_spec_command_delegates_to_render_api(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import fasthep_render.api as render_api
+
+    spec = tmp_path / "render.yaml"
+    product = tmp_path / "hist.pkl"
+    out = tmp_path / "plot.png"
+    spec.write_text("spec: {}\n", encoding="utf-8")
+    product.write_bytes(b"pickle")
+    calls: list[tuple[Path, Path | None, Path | None, Path | None]] = []
+
+    class FakeOutcome:
+        status = RenderStatus.RENDERED
+        output_path = out
+
+    def fake_render_spec_file(
+        spec_path: Path,
+        *,
+        product: Path | None,
+        out: Path | None,
+        plan_path: Path | None,
+    ) -> FakeOutcome:
+        calls.append((spec_path, product, out, plan_path))
+        return FakeOutcome()
+
+    monkeypatch.setattr(render_api, "render_spec_file", fake_render_spec_file)
+
+    result = runner.invoke(
+        app,
+        [
+            "render",
+            "spec",
+            str(spec),
+            "--product",
+            str(product),
+            "--out",
+            str(out),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert calls == [(spec, product, out, None)]
+    assert f"Output: {out}" in result.output
+
+
+def test_render_spec_command_passes_plan(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import fasthep_render.api as render_api
+
+    spec = tmp_path / "render.yaml"
+    product = tmp_path / "hist.pkl"
+    plan = tmp_path / "plan.yaml"
+    spec.write_text("spec: {}\n", encoding="utf-8")
+    product.write_bytes(b"pickle")
+    plan.write_text("nodes: []\n", encoding="utf-8")
+    calls: list[Path | None] = []
+
+    class FakeOutcome:
+        status = RenderStatus.RENDERED
+        output_path = tmp_path / "plot.png"
+
+    def fake_render_spec_file(
+        spec_path: Path,
+        *,
+        product: Path | None,
+        out: Path | None,
+        plan_path: Path | None,
+    ) -> FakeOutcome:
+        calls.append(plan_path)
+        return FakeOutcome()
+
+    monkeypatch.setattr(render_api, "render_spec_file", fake_render_spec_file)
+
+    result = runner.invoke(
+        app,
+        [
+            "render",
+            "spec",
+            str(spec),
+            "--product",
+            str(product),
+            "--plan",
+            str(plan),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert calls == [plan]
+
+
+def test_render_spec_command_requires_product(tmp_path: Path) -> None:
+    spec = tmp_path / "render.yaml"
+    spec.write_text("spec: {}\n", encoding="utf-8")
+
+    result = runner.invoke(app, ["render", "spec", str(spec)])
+
+    assert result.exit_code != 0
+    assert "--product is required" in result.output
+
+
+def test_render_command_has_no_dispatch_helpers() -> None:
+    assert not hasattr(render_command_module, "render_resolved")
+    assert not hasattr(render_command_module, "resolve_runtime_registry")
+    assert not hasattr(render_command_module, "read_pickle")
 
 
 def test_normalise_command_smoke(tmp_path: Path) -> None:
