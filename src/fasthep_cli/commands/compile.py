@@ -4,6 +4,7 @@ from pathlib import Path
 
 import typer
 from hepflow.api import compile_author_file
+from hepflow.build_layout import graph_dir, normalized_path, plan_path
 
 
 def compile_command(
@@ -16,7 +17,7 @@ def compile_command(
         outdir=outdir,
         chunk_size=chunk_size,
     )
-    typer.echo(f"Wrote {outdir / 'normalized.yaml'}")
-    typer.echo(f"Wrote {outdir / 'plan.yaml'}")
-    typer.echo(f"Wrote {outdir / 'graph.mmd'}")
-    typer.echo(f"Wrote {outdir / 'graph.dot'}")
+    typer.echo(f"Wrote {normalized_path(outdir)}")
+    typer.echo(f"Wrote {plan_path(outdir)}")
+    typer.echo(f"Wrote {graph_dir(outdir) / 'graph.mmd'}")
+    typer.echo(f"Wrote {graph_dir(outdir) / 'graph.dot'}")

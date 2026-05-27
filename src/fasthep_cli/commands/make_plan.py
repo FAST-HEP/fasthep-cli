@@ -4,6 +4,7 @@ from pathlib import Path
 
 import typer
 from hepflow.api import make_plan_file
+from hepflow.build_layout import graph_dir, plan_path
 
 
 def make_plan_command(
@@ -12,6 +13,6 @@ def make_plan_command(
     chunk_size: int | None = typer.Option(None, "--chunk-size"),
 ) -> None:
     make_plan_file(normalized_yaml, outdir=outdir, chunk_size=chunk_size)
-    typer.echo(f"Wrote {outdir / 'plan.yaml'}")
-    typer.echo(f"Wrote {outdir / 'graph.mmd'}")
-    typer.echo(f"Wrote {outdir / 'graph.dot'}")
+    typer.echo(f"Wrote {plan_path(outdir)}")
+    typer.echo(f"Wrote {graph_dir(outdir) / 'graph.mmd'}")
+    typer.echo(f"Wrote {graph_dir(outdir) / 'graph.dot'}")

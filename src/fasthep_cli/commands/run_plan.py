@@ -4,6 +4,7 @@ from pathlib import Path
 
 import typer
 from hepflow.api import run_plan_file
+from hepflow.build_layout import artifacts_dir, build_root, run_summary_path
 
 
 def run_plan_command(
@@ -22,8 +23,8 @@ def run_plan_command(
         scheduler=scheduler,
         workers=workers,
     )
-    summary_dir = outdir if outdir is not None else plan_yaml.parent
+    summary_dir = outdir if outdir is not None else build_root(plan_yaml.parent)
     typer.echo("Run complete")
     typer.echo(f"Backend: {result.backend}.{result.strategy}")
-    typer.echo(f"Summary: {summary_dir / 'run_summary.yaml'}")
-    typer.echo(f"Artifacts: {summary_dir / 'artifacts'}")
+    typer.echo(f"Summary: {run_summary_path(summary_dir)}")
+    typer.echo(f"Artifacts: {artifacts_dir(summary_dir)}")

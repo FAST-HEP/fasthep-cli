@@ -263,7 +263,7 @@ def test_normalise_command_smoke(tmp_path: Path) -> None:
     result = runner.invoke(app, ["normalise", str(author), "--outdir", str(outdir)])
 
     assert result.exit_code == 0, result.output
-    assert (outdir / "normalized.yaml").exists()
+    assert (outdir / "compile" / "normalized.yaml").exists()
 
 
 def test_normalize_alias_smoke(tmp_path: Path) -> None:
@@ -273,7 +273,7 @@ def test_normalize_alias_smoke(tmp_path: Path) -> None:
     result = runner.invoke(app, ["normalize", str(author), "--outdir", str(outdir)])
 
     assert result.exit_code == 0, result.output
-    assert (outdir / "normalized.yaml").exists()
+    assert (outdir / "compile" / "normalized.yaml").exists()
 
 
 def test_make_plan_command_smoke(tmp_path: Path) -> None:
@@ -284,13 +284,18 @@ def test_make_plan_command_smoke(tmp_path: Path) -> None:
 
     result = runner.invoke(
         app,
-        ["make-plan", str(outdir / "normalized.yaml"), "--outdir", str(outdir)],
+        [
+            "make-plan",
+            str(outdir / "compile" / "normalized.yaml"),
+            "--outdir",
+            str(outdir),
+        ],
     )
 
     assert result.exit_code == 0, result.output
-    assert (outdir / "plan.yaml").exists()
-    assert (outdir / "graph.mmd").exists()
-    assert (outdir / "graph.dot").exists()
+    assert (outdir / "compile" / "plan.yaml").exists()
+    assert (outdir / "graph" / "graph.mmd").exists()
+    assert (outdir / "graph" / "graph.dot").exists()
 
 
 def test_compile_command_smoke(tmp_path: Path) -> None:
@@ -300,8 +305,8 @@ def test_compile_command_smoke(tmp_path: Path) -> None:
     result = runner.invoke(app, ["compile", str(author), "--outdir", str(outdir)])
 
     assert result.exit_code == 0, result.output
-    assert (outdir / "normalized.yaml").exists()
-    assert (outdir / "plan.yaml").exists()
+    assert (outdir / "compile" / "normalized.yaml").exists()
+    assert (outdir / "compile" / "plan.yaml").exists()
 
 
 def test_run_plan_command_smoke(tmp_path: Path) -> None:
@@ -320,8 +325,8 @@ def test_run_command_smoke(tmp_path: Path) -> None:
     result = runner.invoke(app, ["run", str(author), "--outdir", str(outdir)])
 
     assert result.exit_code == 0, result.output
-    assert (outdir / "normalized.yaml").exists()
-    assert (outdir / "plan.yaml").exists()
+    assert (outdir / "compile" / "normalized.yaml").exists()
+    assert (outdir / "compile" / "plan.yaml").exists()
     assert (outdir / "run_summary.yaml").exists()
 
 
