@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import fasthep_render.api as render_api
 import pytest
 import yaml
 from hepflow.model.render import RenderStatus
@@ -221,8 +222,6 @@ def test_render_spec_command_delegates_to_render_api(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import fasthep_render.api as render_api
-
     spec = tmp_path / "render.yaml"
     product = tmp_path / "hist.pkl"
     out = tmp_path / "plot.png"
@@ -268,8 +267,6 @@ def test_render_spec_command_passes_plan(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    import fasthep_render.api as render_api
-
     spec = tmp_path / "render.yaml"
     product = tmp_path / "hist.pkl"
     plan = tmp_path / "plan.yaml"

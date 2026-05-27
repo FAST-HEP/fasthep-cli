@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from importlib import import_module
 from pathlib import Path
 
 import typer
@@ -27,18 +28,16 @@ def render_spec_command(
     ),
 ) -> None:
     if product is None:
-        raise typer.BadParameter(
-            "--product is required until plan-aware render spec execution is available"
-        )
+        msg = "--product is required until plan-aware render spec execution is available"
+        raise typer.BadParameter(msg)
 
     try:
-        from fasthep_render.api import render_spec_file
+        render_api = import_module("fasthep_render.api")
     except ModuleNotFoundError as exc:
-        raise typer.BadParameter(
-            "fasthep-render is required for 'fasthep render spec'"
-        ) from exc
+        msg = "fasthep-render is required for 'fasthep render spec'"
+        raise typer.BadParameter(msg) from exc
 
-    outcome = render_spec_file(
+    outcome = render_api.render_spec_file(
         spec_path,
         product=product,
         out=out,
