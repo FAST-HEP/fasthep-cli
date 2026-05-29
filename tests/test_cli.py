@@ -354,10 +354,12 @@ def test_render_spec_command_renders_cutflow_csv(
                         "parents": [],
                         "stats": {
                             "data": {
-                                "n_in": 10,
-                                "n_out": 7,
-                                "sumw_in": 10.0,
-                                "sumw_out": 7.0,
+                                "n_in": 10.5,
+                                "n_out": 7.5,
+                                "n_unweighted_in": 10,
+                                "n_unweighted_out": 7,
+                                "sumw_in": 10.5,
+                                "sumw_out": 7.5,
                                 "sumw2_in": 10.0,
                                 "sumw2_out": 7.0,
                             }
@@ -385,7 +387,7 @@ def test_render_spec_command_renders_cutflow_csv(
 
     assert result.exit_code == 0, result.output
     assert "Render complete" in result.output
-    assert "All,NIsoMuon >= 2,data,10,7" in out.read_text(encoding="utf-8")
+    assert "All,NIsoMuon >= 2,data,10.5,7.5,10,7" in out.read_text(encoding="utf-8")
 
 
 def test_render_command_has_no_dispatch_helpers() -> None:
