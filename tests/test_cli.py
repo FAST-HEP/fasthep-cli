@@ -318,6 +318,56 @@ def test_render_spec_command_requires_product(tmp_path: Path) -> None:
     assert "--product is required" in result.output
 
 
+def test_render_spec_command_renders_cutflow_csv(
+    tmp_path: Path,
+) -> None:
+    spec = tmp_path / "render.yaml"
+    product = tmp_path / "EventSelection.json"
+    out = tmp_path / "EventSelection.csv"
+    spec.write_text(
+        yaml.safe_dump(
+            {
+                "node_id": "render.EventSelection.0",
+                "impl": "hep.render.cutflow_csv",
+                "out": "EventSelection.csv",
+                "spec": {"op": "hep.render.cutflow_csv"},
+            },
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
+    product.write_text(
+        json.dumps(
+            {
+                "cutflows": [
+                    {
+                        "dataset": "data",
+                        "cuts": [{"name": "All[0]", "n": 7}],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "render",
+            "spec",
+            str(spec),
+            "--product",
+            str(product),
+            "--out",
+            str(out),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "Render complete" in result.output
+    assert "data,All[0],7" in out.read_text(encoding="utf-8")
+
+
 def test_render_command_has_no_dispatch_helpers() -> None:
     assert not hasattr(render_command_module, "render_resolved")
     assert not hasattr(render_command_module, "resolve_runtime_registry")
