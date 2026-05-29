@@ -339,12 +339,32 @@ def test_render_spec_command_renders_cutflow_csv(
     product.write_text(
         json.dumps(
             {
-                "cutflows": [
+                "version": "1.0",
+                "kind": "cutflow",
+                "producer": "stage.EventSelection",
+                "datasets": ["data"],
+                "nodes": [
                     {
-                        "dataset": "data",
-                        "cuts": [{"name": "All[0]", "n": 7}],
+                        "id": "All[0]",
+                        "selection": "All",
+                        "index": 0,
+                        "label": "NIsoMuon >= 2",
+                        "expr": "NIsoMuon >= 2",
+                        "kind": "expression",
+                        "parents": [],
+                        "stats": {
+                            "data": {
+                                "n_in": 10,
+                                "n_out": 7,
+                                "sumw_in": 10.0,
+                                "sumw_out": 7.0,
+                                "sumw2_in": 10.0,
+                                "sumw2_out": 7.0,
+                            }
+                        },
                     }
-                ]
+                ],
+                "edges": [],
             }
         ),
         encoding="utf-8",
@@ -365,7 +385,7 @@ def test_render_spec_command_renders_cutflow_csv(
 
     assert result.exit_code == 0, result.output
     assert "Render complete" in result.output
-    assert "data,All[0],7" in out.read_text(encoding="utf-8")
+    assert "All,NIsoMuon >= 2,data,10,7" in out.read_text(encoding="utf-8")
 
 
 def test_render_command_has_no_dispatch_helpers() -> None:
