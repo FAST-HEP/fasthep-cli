@@ -27,7 +27,6 @@ def run_command(
     )
     summary_dir = outdir
     if (compile_dir(outdir) / "systematics.yaml").exists():
-        summary_dir = outdir / "nominal"
         typer.echo(
             "Systematics plans were generated; ran nominal only. "
             "Use `fasthep run-plan` to run a specific variation."
