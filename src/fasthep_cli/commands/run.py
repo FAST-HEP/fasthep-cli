@@ -4,7 +4,7 @@ from pathlib import Path
 
 import typer
 from hepflow.api import run_author_file
-from hepflow.build_layout import artifacts_dir, run_summary_path
+from hepflow.build_layout import artifacts_dir, compile_dir, run_summary_path
 
 
 def run_command(
@@ -25,7 +25,14 @@ def run_command(
         scheduler=scheduler,
         workers=workers,
     )
+    summary_dir = outdir
+    if (compile_dir(outdir) / "systematics.yaml").exists():
+        summary_dir = outdir / "nominal"
+        typer.echo(
+            "Systematics plans were generated; ran nominal only. "
+            "Use `fasthep run-plan` to run a specific variation."
+        )
     typer.echo("Run complete")
     typer.echo(f"Backend: {result.backend}.{result.strategy}")
-    typer.echo(f"Summary: {run_summary_path(outdir)}")
-    typer.echo(f"Artifacts: {artifacts_dir(outdir)}")
+    typer.echo(f"Summary: {run_summary_path(summary_dir)}")
+    typer.echo(f"Artifacts: {artifacts_dir(summary_dir)}")
