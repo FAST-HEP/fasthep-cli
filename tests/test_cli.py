@@ -456,6 +456,30 @@ def test_run_plan_command_smoke(tmp_path: Path) -> None:
 
     assert result.exit_code == 0, result.output
     assert (tmp_path / "run_summary.yaml").exists()
+    assert f"Summary: {tmp_path / 'run_summary.yaml'}" in result.output
+    assert f"Artifacts: {tmp_path / 'artifacts'}" in result.output
+
+
+def test_run_plan_command_reports_variation_paths(tmp_path: Path) -> None:
+    build_dir = tmp_path / "build"
+    plan = _write_empty_plan(
+        build_dir / "compile" / "trigger_eff_down",
+        variation="trigger_eff_down",
+    )
+
+    result = runner.invoke(app, ["run-plan", str(plan)])
+
+    assert result.exit_code == 0, result.output
+    assert (
+        f"Summary: {build_dir / 'reports' / 'trigger_eff_down' / 'run_summary.yaml'}"
+        in result.output
+    )
+    assert (
+        f"Artifacts: {build_dir / 'artifacts' / 'trigger_eff_down'}"
+        in result.output
+    )
+    assert (build_dir / "reports" / "trigger_eff_down" / "run_summary.yaml").exists()
+    assert not (build_dir / "trigger_eff_down" / "artifacts").exists()
 
 
 def test_run_command_smoke(tmp_path: Path) -> None:
@@ -535,9 +559,12 @@ def _write_author(tmp_path: Path) -> Path:
     return path
 
 
-def _write_empty_plan(tmp_path: Path) -> Path:
+def _write_empty_plan(tmp_path: Path, *, variation: str | None = None) -> Path:
+    context = {}
+    if variation is not None:
+        context["variation"] = {"name": variation, "is_nominal": False}
     plan = {
-        "context": {},
+        "context": context,
         "registry": {
             "backends": {
                 "local.default": {
@@ -555,6 +582,7 @@ def _write_empty_plan(tmp_path: Path) -> Path:
         "partitions": [],
         "nodes": [],
     }
+    tmp_path.mkdir(parents=True, exist_ok=True)
     path = tmp_path / "plan.yaml"
     path.write_text(yaml.safe_dump(plan, sort_keys=False), encoding="utf-8")
     return path
