@@ -315,7 +315,7 @@ def test_render_spec_command_requires_product(tmp_path: Path) -> None:
     result = runner.invoke(app, ["render", "spec", str(spec)])
 
     assert result.exit_code != 0
-    assert "--product is required" in result.output
+    assert "--product is required" in strip_ansi(result.output)
 
 
 def test_render_spec_command_renders_cutflow_csv(
