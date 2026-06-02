@@ -226,3 +226,4 @@ snapshots/
 
 # hatch-vcs generated version file
 src/fasthep_cli/_version.py
+pixi.lock
