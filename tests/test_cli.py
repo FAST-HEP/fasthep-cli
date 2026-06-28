@@ -6,7 +6,7 @@ from pathlib import Path
 import fasthep_render.api as render_api
 import pytest
 import yaml
-from hepflow.model.render import RenderStatus
+from fasthep_render.model import RenderStatus
 from typer.testing import CliRunner
 
 import fasthep_cli
