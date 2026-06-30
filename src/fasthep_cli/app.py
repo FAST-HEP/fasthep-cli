@@ -18,6 +18,7 @@ from fasthep_cli.commands.diff import diff_command
 from fasthep_cli.commands.init import init_command
 from fasthep_cli.commands.make_plan import make_plan_command
 from fasthep_cli.commands.normalise import normalise_command
+from fasthep_cli.commands.provenance import provenance_app
 from fasthep_cli.commands.render import render_app
 from fasthep_cli.commands.run import run_command
 from fasthep_cli.commands.run_plan import run_plan_command
@@ -31,7 +32,8 @@ PROFILE_HELP = (
 app = typer.Typer(
     help=(
         "FAST-HEP workflow CLI. Core workflow verbs are top-level commands; "
-        "specialised inspect/render/validate/dataset namespaces will arrive later."
+        "specialised workflows live under grouped namespaces such as render "
+        "and provenance."
     ),
     epilog=PROFILE_HELP,
     no_args_is_help=True,
@@ -124,6 +126,7 @@ app.command("run-plan")(run_plan_command)
 app.command("run")(run_command)
 app.command("diff")(diff_command)
 app.command("show-defaults")(show_defaults_command)
+app.add_typer(provenance_app, name="provenance")
 app.add_typer(render_app, name="render")
 
 

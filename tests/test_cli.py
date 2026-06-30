@@ -12,6 +12,7 @@ from typer.testing import CliRunner
 import fasthep_cli
 import fasthep_cli.app as cli_app
 import fasthep_cli.commands.init as init_command_module
+import fasthep_cli.commands.provenance as provenance_command_module
 import fasthep_cli.commands.render as render_command_module
 from fasthep_cli.app import app
 from fasthep_cli.testing import strip_ansi
@@ -109,6 +110,53 @@ def test_download_command_delegates_to_toolbench(
     assert result.exit_code == 0, result.output
     assert calls == [(str(manifest), str(destination), True)]
     assert (destination / "example.dat").read_text(encoding="utf-8") == "payload"
+
+
+def test_provenance_summary_command_delegates(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[Path] = []
+
+    def fake_summary(outdir: Path) -> str:
+        calls.append(outdir)
+        return "summary text"
+
+    monkeypatch.setattr(
+        provenance_command_module,
+        "provenance_summary_text",
+        fake_summary,
+    )
+
+    result = runner.invoke(app, ["provenance", "summary", str(tmp_path)])
+
+    assert result.exit_code == 0, result.output
+    assert calls == [tmp_path]
+    assert "summary text" in result.output
+
+
+def test_provenance_show_command_delegates(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    artifact = tmp_path / "artifacts" / "files" / "selected.root"
+    calls: list[Path] = []
+
+    def fake_show(path: Path) -> str:
+        calls.append(path)
+        return "artifact text"
+
+    monkeypatch.setattr(
+        provenance_command_module,
+        "provenance_artifact_text",
+        fake_show,
+    )
+
+    result = runner.invoke(app, ["provenance", "show", str(artifact)])
+
+    assert result.exit_code == 0, result.output
+    assert calls == [artifact]
+    assert "artifact text" in result.output
 
 
 def test_init_command_smoke(tmp_path: Path) -> None:
