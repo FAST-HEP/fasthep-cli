@@ -159,6 +159,69 @@ def test_provenance_show_command_delegates(
     assert "artifact text" in result.output
 
 
+def test_provenance_graph_command_delegates(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    artifact = tmp_path / "artifacts" / "files" / "selected.root"
+    calls: list[tuple[Path, str]] = []
+
+    def fake_graph(path: Path, *, output_format: str) -> str:
+        calls.append((path, output_format))
+        return "flowchart TD\n"
+
+    monkeypatch.setattr(
+        provenance_command_module,
+        "provenance_graph_text",
+        fake_graph,
+    )
+
+    result = runner.invoke(
+        app,
+        ["provenance", "graph", str(artifact), "--format", "mermaid"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert calls == [(artifact, "mermaid")]
+    assert "flowchart TD" in result.output
+
+
+def test_provenance_graph_command_writes_output(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    artifact = tmp_path / "artifacts" / "files" / "selected.root"
+    output = tmp_path / "graph.dot"
+
+    def fake_graph(path: Path, *, output_format: str) -> str:
+        assert path == artifact
+        assert output_format == "dot"
+        return "digraph provenance {}\n"
+
+    monkeypatch.setattr(
+        provenance_command_module,
+        "provenance_graph_text",
+        fake_graph,
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "provenance",
+            "graph",
+            str(artifact),
+            "--format",
+            "dot",
+            "--out",
+            str(output),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert result.output == ""
+    assert output.read_text(encoding="utf-8") == "digraph provenance {}\n"
+
+
 def test_init_command_smoke(tmp_path: Path) -> None:
     result = runner.invoke(app, ["init", "--target-dir", str(tmp_path)])
 
