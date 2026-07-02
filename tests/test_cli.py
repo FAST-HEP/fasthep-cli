@@ -7,6 +7,7 @@ import fasthep_render.api as render_api
 import pytest
 import yaml
 from fasthep_render.model import RenderStatus
+from fasthep_toolbench.command import CommandResult
 from typer.testing import CliRunner
 
 import fasthep_cli
@@ -14,6 +15,7 @@ import fasthep_cli.app as cli_app
 import fasthep_cli.commands.init as init_command_module
 import fasthep_cli.commands.provenance as provenance_command_module
 import fasthep_cli.commands.render as render_command_module
+import fasthep_cli.commands.tools as tools_command_module
 from fasthep_cli.app import app
 from fasthep_cli.testing import strip_ansi
 
@@ -220,6 +222,162 @@ def test_provenance_graph_command_writes_output(
     assert result.exit_code == 0, result.output
     assert result.output == ""
     assert output.read_text(encoding="utf-8") == "digraph provenance {}\n"
+
+
+def test_tools_list_command_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        tools_command_module,
+        "tools_list_text",
+        lambda: "Registered tools:\n  example.tool\n",
+    )
+
+    result = runner.invoke(app, ["tools", "list"])
+
+    assert result.exit_code == 0, result.output
+    assert "example.tool" in result.output
+
+
+def test_tools_info_command_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+
+    def fake_info(tool: str) -> str:
+        calls.append(tool)
+        return "Tool: example.tool\n"
+
+    monkeypatch.setattr(tools_command_module, "tool_info_text", fake_info)
+
+    result = runner.invoke(app, ["tools", "info", "example.tool"])
+
+    assert result.exit_code == 0, result.output
+    assert calls == ["example.tool"]
+    assert "Tool: example.tool" in result.output
+
+
+def test_tools_run_command_formats_python_result(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, list[str]]] = []
+
+    def fake_run(tool: str, args: list[str]) -> dict[str, bool]:
+        calls.append((tool, args))
+        return {"ok": True}
+
+    monkeypatch.setattr(tools_command_module, "run_registered_tool", fake_run)
+
+    result = runner.invoke(
+        app,
+        ["tools", "run", "example.tool", "--query", "dataset"],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert calls == [("example.tool", ["--query", "dataset"])]
+    assert '"ok": true' in result.output
+
+
+def test_tools_run_command_streams_command_result(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_run(tool: str, args: list[str]) -> CommandResult:
+        assert tool == "example.tool"
+        assert args == ["--query", "dataset"]
+        return CommandResult(
+            command=["example-tool", "--query", "dataset"],
+            exit_code=3,
+            stdout="out text\n",
+            stderr="err text\n",
+        )
+
+    monkeypatch.setattr(tools_command_module, "run_registered_tool", fake_run)
+
+    result = runner.invoke(
+        app,
+        ["tools", "run", "example.tool", "--query", "dataset"],
+    )
+
+    assert result.exit_code == 3
+    assert "out text\n" in result.output
+    assert "err text\n" in result.stderr
+
+
+def test_tools_run_command_json_formats_command_result(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_run(tool: str, args: list[str]) -> CommandResult:
+        assert tool == "example.tool"
+        assert args == ["--query", "dataset"]
+        return CommandResult(
+            command=["example-tool", "--query", "dataset"],
+            exit_code=3,
+            stdout="out text\n",
+            stderr="err text\n",
+        )
+
+    monkeypatch.setattr(tools_command_module, "run_registered_tool", fake_run)
+
+    result = runner.invoke(
+        app,
+        ["tools", "run", "example.tool", "--query", "dataset", "--json"],
+    )
+
+    assert result.exit_code == 3
+    assert result.stderr == ""
+    parsed = json.loads(result.output)
+    assert parsed == {
+        "command": ["example-tool", "--query", "dataset"],
+        "executable": "example-tool",
+        "exit_code": 3,
+        "stderr": "err text\n",
+        "stdout": "out text\n",
+        "timed_out": False,
+        "tool": "example.tool",
+    }
+
+
+def test_tools_run_command_d2_positional_shape(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_run(tool: str, args: list[str]) -> CommandResult:
+        assert tool == "d2"
+        assert args == ["input.d2", "output.svg"]
+        return CommandResult(
+            command=["d2", "input.d2", "output.svg", "--format", "svg"],
+            exit_code=0,
+            stdout="",
+            stderr="",
+        )
+
+    monkeypatch.setattr(tools_command_module, "run_registered_tool", fake_run)
+
+    result = runner.invoke(app, ["tools", "run", "d2", "input.d2", "output.svg"])
+
+    assert result.exit_code == 0, result.output
+    assert result.output == ""
+
+
+def test_tools_run_command_d2_json_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_run(tool: str, args: list[str]) -> CommandResult:
+        assert tool == "d2"
+        assert args == ["input.d2", "output.svg"]
+        return CommandResult(
+            command=["d2", "input.d2", "output.svg", "--format", "svg"],
+            exit_code=0,
+            stdout="",
+            stderr="",
+        )
+
+    monkeypatch.setattr(tools_command_module, "run_registered_tool", fake_run)
+
+    result = runner.invoke(
+        app,
+        ["tools", "run", "d2", "input.d2", "output.svg", "--json"],
+    )
+
+    assert result.exit_code == 0, result.output
+    parsed = json.loads(result.output)
+    assert parsed["tool"] == "d2"
+    assert parsed["command"] == ["d2", "input.d2", "output.svg", "--format", "svg"]
 
 
 def test_init_command_smoke(tmp_path: Path) -> None:
