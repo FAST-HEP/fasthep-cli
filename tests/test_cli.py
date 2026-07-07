@@ -255,6 +255,72 @@ def test_tools_info_command_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "Tool: example.tool" in result.output
 
 
+def test_tools_das_discover_command_delegates(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    list_dir = tmp_path / "list"
+    list_dir.mkdir()
+    output_dir = tmp_path / "out"
+    proxy = tmp_path / "proxy"
+    proxy.write_text("proxy", encoding="utf-8")
+    calls: list[tuple[Path, Path, str, str, Path | None, float]] = []
+
+    def fake_discover(
+        *,
+        list_dir: Path,
+        output_dir: Path,
+        era: str,
+        version: str,
+        x509_proxy: Path | None,
+        timeout: float,
+    ) -> dict[str, Path]:
+        calls.append((list_dir, output_dir, era, version, x509_proxy, timeout))
+        return {
+            "datasets": output_dir / "discovery" / "datasets.json",
+            "files": output_dir / "discovery" / "files.json",
+        }
+
+    monkeypatch.setattr(
+        tools_command_module,
+        "discover_das_datasets",
+        fake_discover,
+    )
+
+    result = runner.invoke(
+        app,
+        [
+            "tools",
+            "das-discover",
+            str(list_dir),
+            "--out",
+            str(output_dir),
+            "--era",
+            "RunIII2024Summer24",
+            "--version",
+            "v15",
+            "--x509-proxy",
+            str(proxy),
+            "--timeout",
+            "5",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert calls == [
+        (
+            list_dir,
+            output_dir,
+            "RunIII2024Summer24",
+            "v15",
+            proxy,
+            5.0,
+        )
+    ]
+    assert "datasets:" in result.output
+    assert "files:" in result.output
+
+
 def test_tools_install_command_uses_project_local_default(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

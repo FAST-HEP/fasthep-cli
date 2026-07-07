@@ -8,6 +8,7 @@ from typing import Annotated
 import typer
 from fasthep_toolbench import tool_info_text, tools_list_text
 from fasthep_toolbench.availability import tool_availability
+from fasthep_toolbench.cms.das import discover_das_datasets
 from fasthep_toolbench.command import CommandResult
 from fasthep_toolbench.loader import load_tool_binding
 from fasthep_toolbench.tools import (
@@ -32,6 +33,62 @@ def tools_info_command(tool: Annotated[str, typer.Argument()]) -> None:
         typer.echo(tool_info_text(tool), nl=False)
     except (KeyError, TypeError, ValueError) as exc:
         raise typer.BadParameter(str(exc)) from exc
+
+
+@tools_app.command("das-discover")
+def tools_das_discover_command(
+    list_dir: Annotated[
+        Path,
+        typer.Argument(
+            exists=True,
+            file_okay=False,
+            help="Directory containing list/DATA.txt and list/MC.txt inputs.",
+        ),
+    ],
+    output_dir: Annotated[
+        Path,
+        typer.Option(
+            ...,
+            "--out",
+            "-o",
+            file_okay=False,
+            help="Output directory that will receive discovery/*.json.",
+        ),
+    ],
+    era: Annotated[
+        str,
+        typer.Option(..., "--era", help="Normalised campaign/era label."),
+    ],
+    version: Annotated[
+        str,
+        typer.Option(..., "--version", help="Normalised dataset version label."),
+    ],
+    x509_proxy: Path | None = typer.Option(
+        None,
+        "--x509-proxy",
+        exists=True,
+        dir_okay=False,
+        help="Explicit X509 proxy path. Otherwise X509_USER_PROXY is inherited.",
+    ),
+    timeout: float = typer.Option(
+        60.0,
+        "--timeout",
+        help="Timeout per DAS query in seconds.",
+    ),
+) -> None:
+    try:
+        paths = discover_das_datasets(
+            list_dir=list_dir,
+            output_dir=output_dir,
+            era=era,
+            version=version,
+            x509_proxy=x509_proxy,
+            timeout=timeout,
+        )
+    except (OSError, TypeError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    for name, path in paths.items():
+        typer.echo(f"{name}: {path}")
 
 
 @tools_app.command(
