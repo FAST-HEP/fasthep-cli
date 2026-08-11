@@ -124,7 +124,7 @@ fasthep init --include ./profiles/custom.yaml
 Compile a workflow:
 
 ```bash
-fasthep compile examples/CMS/Hinv/author.yaml --work-dir build/Hinv
+fasthep compile examples/CMS/Hinv/workflow.yaml --work-dir build/Hinv
 ```
 
 Run a compiled plan:
@@ -136,7 +136,7 @@ fasthep run-plan build/Hinv/plan.yaml
 Compile and run in one step:
 
 ```bash
-fasthep run examples/CMS/Hinv/author.yaml --work-dir build/Hinv
+fasthep run examples/CMS/Hinv/workflow.yaml --work-dir build/Hinv
 ```
 
 Inspect installed FAST-HEP packages:

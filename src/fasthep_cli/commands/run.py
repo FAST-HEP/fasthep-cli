@@ -3,12 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import typer
-from hepflow.api import run_author_file
+from hepflow.api import run_workflow_file
 from hepflow.build_layout import compile_dir
 
 
 def run_command(
-    author_yaml: Path = typer.Argument(..., exists=True, dir_okay=False),
+    workflow_yaml: Path = typer.Argument(..., exists=True, dir_okay=False),
     outdir: Path = typer.Option(..., "--outdir", file_okay=False),
     chunk_size: int | None = typer.Option(None, "--chunk-size"),
     backend: str | None = typer.Option(None, "--backend"),
@@ -16,8 +16,8 @@ def run_command(
     scheduler: str | None = typer.Option(None, "--scheduler"),
     workers: int | None = typer.Option(None, "--workers"),
 ) -> None:
-    result = run_author_file(
-        author_yaml,
+    result = run_workflow_file(
+        workflow_yaml,
         outdir=outdir,
         chunk_size=chunk_size,
         backend=backend,

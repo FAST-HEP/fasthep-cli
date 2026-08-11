@@ -890,29 +890,29 @@ def test_render_command_has_no_dispatch_helpers() -> None:
 
 
 def test_normalise_command_smoke(tmp_path: Path) -> None:
-    author = _write_author(tmp_path)
+    workflow = _write_workflow(tmp_path)
     outdir = tmp_path / "build"
 
-    result = runner.invoke(app, ["normalise", str(author), "--outdir", str(outdir)])
+    result = runner.invoke(app, ["normalise", str(workflow), "--outdir", str(outdir)])
 
     assert result.exit_code == 0, result.output
     assert (outdir / "compile" / "normalized.yaml").exists()
 
 
 def test_normalize_alias_smoke(tmp_path: Path) -> None:
-    author = _write_author(tmp_path)
+    workflow = _write_workflow(tmp_path)
     outdir = tmp_path / "build"
 
-    result = runner.invoke(app, ["normalize", str(author), "--outdir", str(outdir)])
+    result = runner.invoke(app, ["normalize", str(workflow), "--outdir", str(outdir)])
 
     assert result.exit_code == 0, result.output
     assert (outdir / "compile" / "normalized.yaml").exists()
 
 
 def test_make_plan_command_smoke(tmp_path: Path) -> None:
-    author = _write_author(tmp_path)
+    workflow = _write_workflow(tmp_path)
     outdir = tmp_path / "build"
-    result = runner.invoke(app, ["normalise", str(author), "--outdir", str(outdir)])
+    result = runner.invoke(app, ["normalise", str(workflow), "--outdir", str(outdir)])
     assert result.exit_code == 0, result.output
 
     result = runner.invoke(
@@ -932,10 +932,10 @@ def test_make_plan_command_smoke(tmp_path: Path) -> None:
 
 
 def test_compile_command_smoke(tmp_path: Path) -> None:
-    author = _write_author(tmp_path)
+    workflow = _write_workflow(tmp_path)
     outdir = tmp_path / "build"
 
-    result = runner.invoke(app, ["compile", str(author), "--outdir", str(outdir)])
+    result = runner.invoke(app, ["compile", str(workflow), "--outdir", str(outdir)])
 
     assert result.exit_code == 0, result.output
     assert (outdir / "compile" / "normalized.yaml").exists()
@@ -976,10 +976,10 @@ def test_run_plan_command_reports_variation_paths(tmp_path: Path) -> None:
 
 
 def test_run_command_smoke(tmp_path: Path) -> None:
-    author = _write_author(tmp_path)
+    workflow = _write_workflow(tmp_path)
     outdir = tmp_path / "build"
 
-    result = runner.invoke(app, ["run", str(author), "--outdir", str(outdir)])
+    result = runner.invoke(app, ["run", str(workflow), "--outdir", str(outdir)])
 
     assert result.exit_code == 0, result.output
     assert (outdir / "compile" / "normalized.yaml").exists()
@@ -1023,8 +1023,8 @@ def test_no_forbidden_workflow_imports() -> None:
         assert not any(item in text for item in forbidden), path
 
 
-def _write_author(tmp_path: Path) -> Path:
-    author = {
+def _write_workflow(tmp_path: Path) -> Path:
+    workflow = {
         "version": "1.0",
         "data": {
             "datasets": [],
@@ -1047,8 +1047,8 @@ def _write_author(tmp_path: Path) -> Path:
         },
         "analysis": {"stages": []},
     }
-    path = tmp_path / "author.yaml"
-    path.write_text(yaml.safe_dump(author, sort_keys=False), encoding="utf-8")
+    path = tmp_path / "workflow.yaml"
+    path.write_text(yaml.safe_dump(workflow, sort_keys=False), encoding="utf-8")
     return path
 
 
