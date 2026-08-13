@@ -145,6 +145,27 @@ Inspect installed FAST-HEP packages:
 fasthep versions
 ```
 
+Inspect a ROOT TTree schema:
+
+```bash
+fasthep inspect schema input.root --tree Events
+```
+
+Extract pasteable field lists or starter alignment schemas:
+
+```bash
+fasthep inspect schema input.root \
+  --tree Events \
+  --include 'GenJet*' \
+  --include 'GenMET*' \
+  --format yaml-list
+
+fasthep inspect schema input.root \
+  --tree Events \
+  --include 'GenJetAK8_*' \
+  --format alignment
+```
+
 Download workshop/example datasets:
 
 ```bash

@@ -16,6 +16,7 @@ from fasthep_cli import __version__
 from fasthep_cli.commands.compile import compile_command
 from fasthep_cli.commands.diff import diff_command
 from fasthep_cli.commands.init import init_command
+from fasthep_cli.commands.inspect import inspect_app
 from fasthep_cli.commands.make_plan import make_plan_command
 from fasthep_cli.commands.normalise import normalise_command
 from fasthep_cli.commands.provenance import provenance_app
@@ -128,6 +129,7 @@ app.command("run")(run_command)
 app.command("diff")(diff_command)
 app.command("show-defaults")(show_defaults_command)
 app.add_typer(provenance_app, name="provenance")
+app.add_typer(inspect_app, name="inspect")
 app.add_typer(render_app, name="render")
 app.add_typer(tools_app, name="tools")
 
