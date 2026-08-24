@@ -6,6 +6,8 @@ import typer
 from hepflow.api import run_workflow_file
 from hepflow.build_layout import compile_dir
 
+from fasthep_cli.progress import TerminalProgressSink
+
 
 def run_command(
     workflow_yaml: Path = typer.Argument(..., exists=True, dir_okay=False),
@@ -24,6 +26,7 @@ def run_command(
         strategy=strategy,
         scheduler=scheduler,
         workers=workers,
+        progress_sinks=[TerminalProgressSink()],
     )
     if (compile_dir(outdir) / "systematics.yaml").exists():
         typer.echo(

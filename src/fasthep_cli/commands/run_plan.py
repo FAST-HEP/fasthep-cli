@@ -5,6 +5,8 @@ from pathlib import Path
 import typer
 from hepflow.api import run_plan_file
 
+from fasthep_cli.progress import TerminalProgressSink
+
 
 def run_plan_command(
     plan_yaml: Path = typer.Argument(..., exists=True, dir_okay=False),
@@ -21,6 +23,7 @@ def run_plan_command(
         strategy=strategy,
         scheduler=scheduler,
         workers=workers,
+        progress_sinks=[TerminalProgressSink()],
     )
     typer.echo("Run complete")
     typer.echo(f"Backend: {result.backend}.{result.strategy}")
