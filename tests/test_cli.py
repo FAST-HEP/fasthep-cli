@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import awkward as ak
 import fasthep_render.api as render_api
@@ -20,6 +21,8 @@ import fasthep_cli.app as cli_app
 import fasthep_cli.commands.init as init_command_module
 import fasthep_cli.commands.provenance as provenance_command_module
 import fasthep_cli.commands.render as render_command_module
+import fasthep_cli.commands.run as run_command_module
+import fasthep_cli.commands.run_plan as run_plan_command_module
 import fasthep_cli.commands.tools as tools_command_module
 from fasthep_cli.app import app
 from fasthep_cli.testing import strip_ansi
@@ -1051,6 +1054,49 @@ def test_run_plan_command_smoke(tmp_path: Path) -> None:
     assert f"Artifacts: {tmp_path / 'artifacts'}" in result.output
 
 
+@pytest.mark.parametrize(
+    ("selector", "expected"),
+    [
+        ("1", [1]),
+        ("1,3,5", [1, 3, 5]),
+        ("1, 3, 5", [1, 3, 5]),
+    ],
+)
+def test_run_plan_command_parses_partition_numbers(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    selector: str,
+    expected: list[int],
+) -> None:
+    calls: list[list[int] | None] = []
+
+    def fake_run_plan_file(*args: object, **kwargs: object) -> SimpleNamespace:
+        del args
+        calls.append(kwargs.get("partition_numbers"))
+        return _fake_run_result(tmp_path)
+
+    monkeypatch.setattr(run_plan_command_module, "run_plan_file", fake_run_plan_file)
+    plan = _write_empty_plan(tmp_path)
+
+    result = runner.invoke(app, ["run-plan", str(plan), "--partition", selector])
+
+    assert result.exit_code == 0, result.output
+    assert calls == [expected]
+
+
+@pytest.mark.parametrize("selector", ["a", "1,a", "0", "-1"])
+def test_run_plan_command_rejects_bad_partition_selector(
+    tmp_path: Path,
+    selector: str,
+) -> None:
+    plan = _write_empty_plan(tmp_path)
+
+    result = runner.invoke(app, ["run-plan", str(plan), "--partition", selector])
+
+    assert result.exit_code != 0
+    assert "--partition" in result.output
+
+
 def test_run_plan_command_reports_variation_paths(tmp_path: Path) -> None:
     build_dir = tmp_path / "build"
     plan = _write_empty_plan(
@@ -1083,6 +1129,55 @@ def test_run_command_smoke(tmp_path: Path) -> None:
     assert (outdir / "compile" / "normalized.yaml").exists()
     assert (outdir / "compile" / "plan.yaml").exists()
     assert (outdir / "run_summary.yaml").exists()
+
+
+@pytest.mark.parametrize(
+    ("selector", "expected"),
+    [
+        ("1", [1]),
+        ("1,3,5", [1, 3, 5]),
+        ("1, 3, 5", [1, 3, 5]),
+    ],
+)
+def test_run_command_parses_partition_numbers(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    selector: str,
+    expected: list[int],
+) -> None:
+    calls: list[list[int] | None] = []
+
+    def fake_run_workflow_file(*args: object, **kwargs: object) -> SimpleNamespace:
+        del args
+        calls.append(kwargs.get("partition_numbers"))
+        return _fake_run_result(tmp_path / "build")
+
+    monkeypatch.setattr(run_command_module, "run_workflow_file", fake_run_workflow_file)
+    workflow = _write_workflow(tmp_path)
+
+    result = runner.invoke(
+        app,
+        ["run", str(workflow), "--outdir", str(tmp_path / "build"), "--partition", selector],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert calls == [expected]
+
+
+@pytest.mark.parametrize("selector", ["a", "1,a", "0", "-1"])
+def test_run_command_rejects_bad_partition_selector(
+    tmp_path: Path,
+    selector: str,
+) -> None:
+    workflow = _write_workflow(tmp_path)
+
+    result = runner.invoke(
+        app,
+        ["run", str(workflow), "--outdir", str(tmp_path / "build"), "--partition", selector],
+    )
+
+    assert result.exit_code != 0
+    assert "--partition" in result.output
 
 
 def test_backend_override_smoke(tmp_path: Path) -> None:
@@ -1119,6 +1214,17 @@ def test_no_forbidden_workflow_imports() -> None:
     for path in root.rglob("*.py"):
         text = path.read_text(encoding="utf-8")
         assert not any(item in text for item in forbidden), path
+
+
+def _fake_run_result(outdir: Path) -> SimpleNamespace:
+    return SimpleNamespace(
+        backend="local",
+        strategy="default",
+        summary={
+            "summary_path": str(outdir / "run_summary.yaml"),
+            "artifacts_path": str(outdir / "artifacts"),
+        },
+    )
 
 
 def _write_workflow(tmp_path: Path) -> Path:

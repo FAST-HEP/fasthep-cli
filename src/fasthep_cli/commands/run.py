@@ -6,6 +6,7 @@ import typer
 from hepflow.api import run_workflow_file
 from hepflow.build_layout import compile_dir
 
+from fasthep_cli.partition import parse_partition_numbers
 from fasthep_cli.progress import TerminalProgressSink
 
 
@@ -17,6 +18,11 @@ def run_command(
     strategy: str | None = typer.Option(None, "--strategy"),
     scheduler: str | None = typer.Option(None, "--scheduler"),
     workers: int | None = typer.Option(None, "--workers"),
+    partition: str | None = typer.Option(
+        None,
+        "--partition",
+        help="Run only selected 1-based partition numbers, e.g. 1 or 1,3,5.",
+    ),
 ) -> None:
     result = run_workflow_file(
         workflow_yaml,
@@ -26,6 +32,7 @@ def run_command(
         strategy=strategy,
         scheduler=scheduler,
         workers=workers,
+        partition_numbers=parse_partition_numbers(partition),
         progress_sinks=[TerminalProgressSink()],
     )
     if (compile_dir(outdir) / "systematics.yaml").exists():

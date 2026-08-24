@@ -5,6 +5,7 @@ from pathlib import Path
 import typer
 from hepflow.api import run_plan_file
 
+from fasthep_cli.partition import parse_partition_numbers
 from fasthep_cli.progress import TerminalProgressSink
 
 
@@ -15,6 +16,11 @@ def run_plan_command(
     strategy: str | None = typer.Option(None, "--strategy"),
     scheduler: str | None = typer.Option(None, "--scheduler"),
     workers: int | None = typer.Option(None, "--workers"),
+    partition: str | None = typer.Option(
+        None,
+        "--partition",
+        help="Run only selected 1-based partition numbers, e.g. 1 or 1,3,5.",
+    ),
 ) -> None:
     result = run_plan_file(
         plan_yaml,
@@ -23,6 +29,7 @@ def run_plan_command(
         strategy=strategy,
         scheduler=scheduler,
         workers=workers,
+        partition_numbers=parse_partition_numbers(partition),
         progress_sinks=[TerminalProgressSink()],
     )
     typer.echo("Run complete")
