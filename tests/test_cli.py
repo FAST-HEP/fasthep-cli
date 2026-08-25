@@ -801,7 +801,6 @@ def test_init_command_has_no_profile_expansion_helpers() -> None:
     assert not hasattr(init_command_module, "copy_package_profiles")
 
 
-
 def test_init_help_documents_include_examples() -> None:
     result = runner.invoke(app, ["init", "--help"])
 
@@ -1072,7 +1071,7 @@ def test_run_plan_command_parses_partition_numbers(
 
     def fake_run_plan_file(*args: object, **kwargs: object) -> SimpleNamespace:
         del args
-        calls.append(kwargs.get("partition_numbers"))
+        calls.append(kwargs.get("partition_numbers"))  # type: ignore[arg-type]
         return _fake_run_result(tmp_path)
 
     monkeypatch.setattr(run_plan_command_module, "run_plan_file", fake_run_plan_file)
@@ -1111,10 +1110,7 @@ def test_run_plan_command_reports_variation_paths(tmp_path: Path) -> None:
         f"Summary: {build_dir / 'reports' / 'trigger_eff_down' / 'run_summary.yaml'}"
         in result.output
     )
-    assert (
-        f"Artifacts: {build_dir / 'artifacts' / 'trigger_eff_down'}"
-        in result.output
-    )
+    assert f"Artifacts: {build_dir / 'artifacts' / 'trigger_eff_down'}" in result.output
     assert (build_dir / "reports" / "trigger_eff_down" / "run_summary.yaml").exists()
     assert not (build_dir / "trigger_eff_down" / "artifacts").exists()
 
@@ -1149,7 +1145,7 @@ def test_run_command_parses_partition_numbers(
 
     def fake_run_workflow_file(*args: object, **kwargs: object) -> SimpleNamespace:
         del args
-        calls.append(kwargs.get("partition_numbers"))
+        calls.append(kwargs.get("partition_numbers"))  # type: ignore[arg-type]
         return _fake_run_result(tmp_path / "build")
 
     monkeypatch.setattr(run_command_module, "run_workflow_file", fake_run_workflow_file)
@@ -1157,7 +1153,14 @@ def test_run_command_parses_partition_numbers(
 
     result = runner.invoke(
         app,
-        ["run", str(workflow), "--outdir", str(tmp_path / "build"), "--partition", selector],
+        [
+            "run",
+            str(workflow),
+            "--outdir",
+            str(tmp_path / "build"),
+            "--partition",
+            selector,
+        ],
     )
 
     assert result.exit_code == 0, result.output
@@ -1173,7 +1176,14 @@ def test_run_command_rejects_bad_partition_selector(
 
     result = runner.invoke(
         app,
-        ["run", str(workflow), "--outdir", str(tmp_path / "build"), "--partition", selector],
+        [
+            "run",
+            str(workflow),
+            "--outdir",
+            str(tmp_path / "build"),
+            "--partition",
+            selector,
+        ],
     )
 
     assert result.exit_code != 0
