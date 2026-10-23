@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from typing import Any
 
 from hepflow.progress import ProgressUpdate
 
@@ -62,12 +63,10 @@ def _distributed_preparation_line(update: ProgressUpdate) -> str:
     detail = dict(event.detail)
     status = detail.get("status")
     if status == "completed":
-        staging = detail.get("staging") if isinstance(detail.get("staging"), dict) else {}
-        env = (
-            detail.get("worker_environment")
-            if isinstance(detail.get("worker_environment"), dict)
-            else {}
-        )
+        raw_staging = detail.get("staging")
+        staging: dict[str, Any] = raw_staging if isinstance(raw_staging, dict) else {}
+        raw_env = detail.get("worker_environment")
+        env: dict[str, Any] = raw_env if isinstance(raw_env, dict) else {}
         total = int(staging.get("transfer_bytes") or 0)
         prefix = int(env.get("prefix_archive_bytes") or 0)
         snapshot = int(env.get("editable_snapshot_bytes") or 0)
