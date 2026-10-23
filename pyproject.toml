@@ -26,7 +26,7 @@ classifiers = [
 dependencies = [
     "fasthep-flow",
     "fasthep-curator",
-    "fasthep-toolbench",
+    "fasthep-toolbench[display,http]",
     "rich",
     "typer",
 ]
