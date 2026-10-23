@@ -18,7 +18,7 @@ twine = "*"
 
 [pypi-dependencies]
 fasthep-flow = ">=2026.5.0"
-fasthep-toolbench = "*"
+fasthep-toolbench = { version = "*", extras = ["display", "http"] }
 fasthep-cli = { path = ".", editable = true }
 
 [environments]
