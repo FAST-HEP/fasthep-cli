@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -10,6 +11,20 @@ import yaml
 from typer.testing import CliRunner
 
 runner = CliRunner(env={"FASTHEP_NO_LOGO": "1"})
+
+_ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def plain_output(output: str) -> str:
+    """Strip ANSI escape codes from CLI output.
+
+    Typer/Rich colourize error panels when color is enabled (CI environments
+    often force it even without a real terminal), splitting a styled option
+    name like ``--partition`` into separately-escaped spans (``-`` then
+    ``-partition``) so the literal substring never appears in raw output.
+    Assertions on option names or messages should check this instead.
+    """
+    return _ANSI_ESCAPE_RE.sub("", output)
 
 
 def fake_run_result(outdir: Path) -> SimpleNamespace:
