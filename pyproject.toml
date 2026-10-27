@@ -24,9 +24,10 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "fasthep-flow",
-    "fasthep-curator",
-    "fasthep-toolbench[display,http]",
+    "fasthep-flow >=2026.10.1",
+    "fasthep-curator >=2026.10.1",
+    "fasthep-render >=2026.10.1",
+    "fasthep-toolbench[display,http] >=2026.10.1",
     "rich",
     "typer",
 ]
