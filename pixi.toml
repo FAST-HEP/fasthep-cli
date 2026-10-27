@@ -17,7 +17,7 @@ codespell = "*"
 twine = "*"
 
 [pypi-dependencies]
-fasthep-flow = ">=2026.5.0"
+fasthep-flow = ">=2026.10.1"
 fasthep-toolbench = { version = "*", extras = ["display", "http"] }
 fasthep-cli = { path = ".", editable = true }
 
