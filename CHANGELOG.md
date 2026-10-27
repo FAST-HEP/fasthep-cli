@@ -10,6 +10,16 @@ Add new entries under `## [Unreleased]`, in the category they belong to. At rele
 
 ## [Unreleased]
 
+### Changed
+
+- Depends on `fasthep-flow`, `fasthep-curator`, `fasthep-render`, and `fasthep-toolbench[display,http]`
+  at `>=2026.10.1` (previously unpinned, except `fasthep-render` which was not a direct dependency
+  at all), and on `typer >=0.27.0` (previously unpinned); older `typer` releases call a
+  `click.utils.get_binary_stream` API that now raises a `DeprecationWarning` under strict
+  `filterwarnings = ["error"]` test suites.
+
+## [2026.10.1] - 2026-10-26
+
 ### Added
 
 - Progress display for distributed execution updates.
