@@ -9,13 +9,8 @@ import yaml
 import fasthep_cli.commands.run as run_command_module
 import fasthep_cli.commands.run_plan as run_plan_command_module
 from fasthep_cli.app import app
-from tests._helpers import (
-    fake_run_result,
-    plain_output,
-    runner,
-    write_empty_plan,
-    write_workflow,
-)
+from fasthep_cli.testing import strip_ansi
+from tests._helpers import fake_run_result, runner, write_empty_plan, write_workflow
 
 
 def test_run_plan_command_smoke(tmp_path: Path) -> None:
@@ -69,7 +64,7 @@ def test_run_plan_command_rejects_bad_partition_selector(
     result = runner.invoke(app, ["run-plan", str(plan), "--partition", selector])
 
     assert result.exit_code != 0
-    assert "--partition" in plain_output(result.output)
+    assert "--partition" in strip_ansi(result.output)
 
 
 def test_run_plan_command_reports_variation_paths(tmp_path: Path) -> None:
@@ -163,7 +158,7 @@ def test_run_command_rejects_bad_partition_selector(
     )
 
     assert result.exit_code != 0
-    assert "--partition" in plain_output(result.output)
+    assert "--partition" in strip_ansi(result.output)
 
 
 def test_backend_override_smoke(tmp_path: Path) -> None:
