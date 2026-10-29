@@ -46,3 +46,29 @@ def render_spec_command(
     typer.echo("Render complete")
     typer.echo(f"Status: {outcome.status.value}")
     typer.echo(f"Output: {outcome.output_path}")
+
+
+@render_app.command("graph")
+def render_graph_command(
+    build_dir: Path = typer.Argument(
+        ...,
+        exists=True,
+        file_okay=False,
+        help="Compile output directory (the --outdir of fasthep compile or run).",
+    ),
+) -> None:
+    """Render graph/graph.d2 of a compile output directory to graph/graph.svg.
+
+    The compile step skips this for large graphs because it can take minutes.
+    """
+    try:
+        graph_hooks = import_module("fasthep_render.graph.compile_hooks")
+    except ModuleNotFoundError as exc:
+        msg = "fasthep-render is required for 'fasthep render graph'"
+        raise typer.BadParameter(msg) from exc
+
+    result = graph_hooks.render_compile_graph(build_dir)
+    typer.echo(f"Status: {result['status']}")
+    if result.get("message"):
+        typer.echo(f"Message: {result['message']}")
+    typer.echo(f"Output: {result['output']}")
