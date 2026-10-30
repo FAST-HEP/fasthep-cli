@@ -10,6 +10,12 @@ Add new entries under `## [Unreleased]`, in the category they belong to. At rele
 
 ## [Unreleased]
 
+### Added
+
+- `fasthep render graph <build dir>` renders `graph/graph.d2` of a compile output directory to
+  `graph/graph.svg`. The compile step skips this for large graphs (fasthep-render), and its warning
+  names this command.
+
 ### Changed
 
 - Depends on `fasthep-flow`, `fasthep-curator`, `fasthep-render`, and `fasthep-toolbench[display,http]`

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 import fasthep_render.api as render_api
+import fasthep_render.graph.compile_hooks as graph_hooks
 import pytest
 import yaml
 from fasthep_render.model import RenderStatus
@@ -190,3 +191,25 @@ def test_render_command_has_no_dispatch_helpers() -> None:
     assert not hasattr(render_command_module, "render_resolved")
     assert not hasattr(render_command_module, "resolve_runtime_registry")
     assert not hasattr(render_command_module, "read_pickle")
+
+
+def test_render_graph_command_renders_the_compile_graph(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[Path, int | None]] = []
+
+    def fake_render_compile_graph(
+        build_root: Path, *, max_bytes: int | None = None
+    ) -> dict[str, str]:
+        calls.append((build_root, max_bytes))
+        return {"status": "rendered", "output": str(build_root / "graph" / "graph.svg")}
+
+    monkeypatch.setattr(graph_hooks, "render_compile_graph", fake_render_compile_graph)
+
+    result = runner.invoke(app, ["render", "graph", str(tmp_path)])
+
+    assert result.exit_code == 0, strip_ansi(result.output)
+    assert calls == [(tmp_path, None)]
+    assert "Status: rendered" in result.output
+    assert str(tmp_path / "graph" / "graph.svg") in result.output
