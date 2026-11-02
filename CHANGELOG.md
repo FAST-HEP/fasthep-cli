@@ -10,11 +10,15 @@ Add new entries under `## [Unreleased]`, in the category they belong to. At rele
 
 ## [Unreleased]
 
+## [2026.11.1] - 2026-11-02
+
 ### Added
 
 - `fasthep render graph <build dir>` renders `graph/graph.d2` of a compile output directory to
   `graph/graph.svg`. The compile step skips this for large graphs (fasthep-render), and its warning
   names this command.
+
+## [2026.10.2] - 2026-10-27
 
 ### Changed
 
