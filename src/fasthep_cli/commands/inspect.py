@@ -12,10 +12,12 @@ from fasthep_curator.api import (
     inspect_root_tree_schema,
 )
 
+from fasthep_cli.logo_policy import FastHepCommand
+
 inspect_app = typer.Typer(no_args_is_help=True)
 
 
-@inspect_app.command("schema")
+@inspect_app.command("schema", cls=FastHepCommand)
 def inspect_schema_command(
     file: Annotated[Path, typer.Argument(dir_okay=False)],
     tree: str = typer.Option("Events", "--tree", help="ROOT TTree name."),

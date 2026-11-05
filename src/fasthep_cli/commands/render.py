@@ -5,10 +5,12 @@ from pathlib import Path
 
 import typer
 
+from fasthep_cli.logo_policy import FastHepCommand
+
 render_app = typer.Typer(no_args_is_help=True)
 
 
-@render_app.command("spec")
+@render_app.command("spec", cls=FastHepCommand)
 def render_spec_command(
     spec_path: Path = typer.Argument(..., exists=True, dir_okay=False),
     product: Path | None = typer.Option(
@@ -48,7 +50,7 @@ def render_spec_command(
     typer.echo(f"Output: {outcome.output_path}")
 
 
-@render_app.command("graph")
+@render_app.command("graph", cls=FastHepCommand)
 def render_graph_command(
     build_dir: Path = typer.Argument(
         ...,

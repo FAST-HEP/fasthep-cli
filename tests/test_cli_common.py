@@ -8,6 +8,7 @@ from typer.testing import CliRunner
 
 import fasthep_cli
 import fasthep_cli.app as cli_app
+import fasthep_cli.logo_policy as logo_policy
 from fasthep_cli.app import app
 from fasthep_cli.testing import strip_ansi
 from tests._helpers import runner
@@ -29,7 +30,7 @@ def test_quiet_version_suppresses_logo(monkeypatch: pytest.MonkeyPatch) -> None:
     def fail_logo() -> None:
         pytest.fail("logo should not be printed for --quiet")
 
-    monkeypatch.setattr(cli_app, "_maybe_print_logo", fail_logo)
+    monkeypatch.setattr(logo_policy, "print_logo", fail_logo)
     result = CliRunner().invoke(app, ["--quiet", "version"])
 
     assert result.exit_code == 0, result.output

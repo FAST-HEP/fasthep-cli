@@ -19,15 +19,17 @@ from fasthep_toolbench.tools import (
     run_registered_tool,
 )
 
+from fasthep_cli.logo_policy import FastHepCommand
+
 tools_app = typer.Typer(no_args_is_help=True)
 
 
-@tools_app.command("list")
+@tools_app.command("list", cls=FastHepCommand)
 def tools_list_command() -> None:
     typer.echo(tools_list_text(), nl=False)
 
 
-@tools_app.command("info")
+@tools_app.command("info", cls=FastHepCommand)
 def tools_info_command(tool: Annotated[str, typer.Argument()]) -> None:
     try:
         typer.echo(tool_info_text(tool), nl=False)
@@ -35,7 +37,7 @@ def tools_info_command(tool: Annotated[str, typer.Argument()]) -> None:
         raise typer.BadParameter(str(exc)) from exc
 
 
-@tools_app.command("das-discover")
+@tools_app.command("das-discover", cls=FastHepCommand)
 def tools_das_discover_command(
     list_dir: Annotated[
         Path,
@@ -93,6 +95,7 @@ def tools_das_discover_command(
 
 @tools_app.command(
     "install",
+    cls=FastHepCommand,
     context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
 )
 def tools_install_command(
@@ -112,6 +115,7 @@ def tools_install_command(
 
 @tools_app.command(
     "run",
+    cls=FastHepCommand,
     context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
 )
 def tools_run_command(

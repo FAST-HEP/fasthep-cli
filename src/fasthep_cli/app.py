@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import sys
-from importlib import import_module
 from pathlib import Path
 from typing import Any, cast
 
@@ -25,6 +24,12 @@ from fasthep_cli.commands.run import run_command
 from fasthep_cli.commands.run_plan import run_plan_command
 from fasthep_cli.commands.show_defaults import show_defaults_command
 from fasthep_cli.commands.tools import tools_app
+from fasthep_cli.logo_policy import (
+    LOGO_META_KEY,
+    FastHepCommand,
+    logo_allowed,
+    logo_command,
+)
 
 PROFILE_HELP = (
     "Profile example: use.profiles = [registry, fasthep_carpenter:registry, "
@@ -49,17 +54,20 @@ def _callback(
 ) -> None:
     if ctx.invoked_subcommand is None:
         return
-    if quiet or _is_json_versions_request() or _is_json_diff_request(sys.argv[1:]):
-        return
-    _maybe_print_logo()
+    ctx.meta[LOGO_META_KEY] = logo_allowed(
+        quiet=quiet, environ=os.environ, isatty=sys.stdout.isatty()
+    )
 
 
-@app.command("version")
+@app.command("version", cls=FastHepCommand)
 def version_command() -> None:
     rich.print(f"[blue]fasthep-cli[/] [magenta]{__version__}[/]")
 
 
-@app.command("versions")
+@app.command(
+    "versions",
+    cls=logo_command(lambda params: params["display_format"] == DisplayFormats.JSON),
+)
 def versions_command(
     display_format: DisplayFormats = typer.Option(
         DisplayFormats.SIMPLE,
@@ -92,7 +100,7 @@ def versions_command(
         display(cast(Any, hep_packages), "HEP Packages", headers, display_format)
 
 
-@app.command("download")
+@app.command("download", cls=FastHepCommand)
 def download_command(
     json_input: Path = typer.Option(
         ...,
@@ -119,57 +127,21 @@ def download_command(
     download_from_json(str(json_input), str(destination), force)
 
 
-app.command("init")(init_command)
-app.command("normalise")(normalise_command)
-app.command("normalize")(normalise_command)
-app.command("make-plan")(make_plan_command)
-app.command("compile")(compile_command)
-app.command("run-plan")(run_plan_command)
-app.command("run")(run_command)
-app.command("diff")(diff_command)
-app.command("show-defaults")(show_defaults_command)
+app.command("init", cls=FastHepCommand)(init_command)
+app.command("normalise", cls=FastHepCommand)(normalise_command)
+app.command("normalize", cls=FastHepCommand)(normalise_command)
+app.command("make-plan", cls=FastHepCommand)(make_plan_command)
+app.command("compile", cls=FastHepCommand)(compile_command)
+app.command("run-plan", cls=FastHepCommand)(run_plan_command)
+app.command("run", cls=FastHepCommand)(run_command)
+app.command("diff", cls=logo_command(lambda params: params["json_output"]))(
+    diff_command
+)
+app.command("show-defaults", cls=FastHepCommand)(show_defaults_command)
 app.add_typer(provenance_app, name="provenance")
 app.add_typer(inspect_app, name="inspect")
 app.add_typer(render_app, name="render")
 app.add_typer(tools_app, name="tools")
-
-
-def _maybe_print_logo() -> None:
-    if os.environ.get("FASTHEP_NO_LOGO"):
-        return
-    if not _stdout_is_tty():
-        return
-    try:
-        logo_module = import_module("fasthep_cli.logo")
-        typer.echo(logo_module.get_logo())
-    except Exception:
-        return
-
-
-def _stdout_is_tty() -> bool:
-    return sys.stdout.isatty()
-
-
-def _is_json_diff_request(args: list[str]) -> bool:
-    """True for ``fasthep diff ... --json``: stdout must then hold only the JSON document."""
-    if "--" in args:
-        args = args[: args.index("--")]
-    return "diff" in args and "--json" in args
-
-
-def _is_json_versions_request() -> bool:
-    args = sys.argv[1:]
-    if "versions" not in args:
-        return False
-
-    for index, arg in enumerate(args):
-        if arg == "--display" and index + 1 < len(args):
-            return args[index + 1] == "json"
-        if arg == "-d" and index + 1 < len(args):
-            return args[index + 1] == "json"
-        if arg.startswith("--display="):
-            return arg.partition("=")[2] == "json"
-    return False
 
 
 def main() -> None:

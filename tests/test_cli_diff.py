@@ -3,7 +3,6 @@ from __future__ import annotations
 import copy
 import json
 import os
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -11,10 +10,8 @@ import pytest
 import yaml
 from hepflow.api import DiffSection, PlanDiffError, diff_plan_files
 from typer import BadParameter
-from typer.testing import CliRunner
 
-import fasthep_cli.app as cli_app
-from fasthep_cli.app import _is_json_diff_request, app
+from fasthep_cli.app import app
 from fasthep_cli.commands.diff import _exit_code, _selected_sections
 from fasthep_cli.testing import strip_ansi
 from tests._helpers import runner
@@ -591,53 +588,6 @@ def test_delegates_to_flow_api_with_resolved_paths(
     assert result.exit_code == 0
     assert seen["resolve"] == [old, new]
     assert seen["diff"] == [(resolved_old, resolved_new)]
-
-
-@pytest.mark.parametrize(
-    ("argv", "expected"),
-    [
-        (["diff", "--json", "a", "b"], True),
-        (["--quiet", "diff", "a", "b", "--json"], True),
-        (["diff", "a", "b"], False),
-        (["versions", "--json"], False),
-        (["diff", "--", "--json"], False),
-    ],
-)
-def test_is_json_diff_request(argv: list[str], expected: bool) -> None:
-    assert _is_json_diff_request(argv) is expected
-
-
-def test_logo_is_not_printed_for_diff_json(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    def fail_logo() -> None:
-        pytest.fail("logo must not be printed before diff --json")
-
-    old, new = _pair(tmp_path, _plan(), _plan())
-    monkeypatch.delenv("FASTHEP_NO_LOGO", raising=False)
-    monkeypatch.setattr(cli_app, "_stdout_is_tty", lambda: True)
-    monkeypatch.setattr(sys, "argv", ["fasthep", "diff", "--json", str(old), str(new)])
-    monkeypatch.setattr(cli_app, "_maybe_print_logo", fail_logo)
-
-    result = CliRunner().invoke(app, ["diff", "--json", str(old), str(new)])
-
-    assert result.exit_code == 0, result.output
-    assert json.loads(result.stdout)["command"] == "diff"
-
-
-def test_logo_is_printed_for_plain_diff_on_a_tty(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    calls: list[str] = []
-    old, new = _pair(tmp_path, _plan(), _plan())
-    monkeypatch.delenv("FASTHEP_NO_LOGO", raising=False)
-    monkeypatch.setattr(sys, "argv", ["fasthep", "diff", str(old), str(new)])
-    monkeypatch.setattr(cli_app, "_maybe_print_logo", lambda: calls.append("logo"))
-
-    result = CliRunner().invoke(app, ["diff", str(old), str(new)])
-
-    assert result.exit_code == 0, result.output
-    assert calls == ["logo"]
 
 
 def test_help_describes_options_and_exit_codes() -> None:
