@@ -3,13 +3,14 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
 
 import pytest
 import yaml
+from fasthep_toolbench.tools import CommandResult
 from typer.testing import CliRunner
 
 import fasthep_cli.app as cli_app
+import fasthep_cli.commands.tools as tools_module
 import fasthep_cli.logo_policy as logo_policy
 from fasthep_cli.app import app
 from fasthep_cli.logo_policy import logo_allowed, logo_command
@@ -101,16 +102,62 @@ def test_no_logo_when_the_environment_disallows_it(
     assert calls == []
 
 
-def test_command_predicate_sees_the_parsed_parameters() -> None:
-    seen: list[Mapping[str, Any]] = []
+def test_command_predicate_is_stored_as_given() -> None:
+    seen: list[object] = []
 
-    def predicate(params: Mapping[str, Any]) -> bool:
-        seen.append(dict(params))
+    def predicate(ctx: object) -> bool:
+        seen.append(ctx)
         return True
 
     command = logo_command(predicate)
 
     assert command.logo_off_when is predicate
     assert logo_command().logo_off_when is None
-    assert predicate({"a": 1}) is True
-    assert seen == [{"a": 1}]
+    assert predicate("ctx") is True
+    assert seen == ["ctx"]
+
+
+def _fake_tool(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        tools_module,
+        "run_registered_tool",
+        lambda tool, args: CommandResult(
+            command=["example-tool"], exit_code=0, stdout="out\n", stderr=""
+        ),
+    )
+    monkeypatch.setattr(
+        tools_module,
+        "_ensure_available_for_run",
+        lambda tool, *, auto_install, no_install: None,
+    )
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["tools", "run", "example.tool", "--json"],
+        ["tools", "run", "--json", "example.tool"],
+        ["tools", "run", "example.tool", "--query", "dataset", "--json"],
+    ],
+)
+def test_logo_is_off_for_tools_run_json(
+    printed: list[str], monkeypatch: pytest.MonkeyPatch, args: list[str]
+) -> None:
+    _fake_tool(monkeypatch)
+
+    result = CliRunner().invoke(app, args)
+
+    assert result.exit_code == 0, result.output
+    assert printed == []
+    assert json.loads(result.stdout)["tool"] == "example.tool"
+
+
+def test_logo_is_printed_for_tools_run_without_json(
+    printed: list[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _fake_tool(monkeypatch)
+
+    result = CliRunner().invoke(app, ["tools", "run", "example.tool"])
+
+    assert result.exit_code == 0, result.output
+    assert printed == ["logo"]

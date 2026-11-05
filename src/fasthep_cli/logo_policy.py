@@ -18,8 +18,9 @@ from typer.core import TyperCommand
 
 LOGO_META_KEY = "fasthep.logo"
 
-#: Predicate over a command's parsed parameters: True turns the logo off for that call.
-LogoOff = Callable[[Mapping[str, Any]], bool]
+#: Predicate over a command's parsed context (``ctx.params``, ``ctx.args``): True turns the
+#: logo off for that call.
+LogoOff = Callable[[typer.Context], bool]
 
 
 def logo_allowed(*, quiet: bool, environ: Mapping[str, str], isatty: bool) -> bool:
@@ -42,14 +43,14 @@ class FastHepCommand(TyperCommand):
 
     # Typer vendors Click; its Context is a subclass of the base class's parameter type.
     def invoke(self, ctx: typer.Context) -> Any:  # type: ignore[override]
-        off = bool(self.logo_off_when and self.logo_off_when(ctx.params))
+        off = bool(self.logo_off_when and self.logo_off_when(ctx))
         if ctx.meta.get(LOGO_META_KEY, False) and not off:
             print_logo()
         return super().invoke(ctx)
 
 
 def logo_command(predicate: LogoOff | None = None) -> type[FastHepCommand]:
-    """A :class:`FastHepCommand` class whose logo is off when ``predicate(params)`` is true."""
+    """A :class:`FastHepCommand` class whose logo is off when ``predicate(ctx)`` is true."""
     namespace = {
         "logo_off_when": None if predicate is None else staticmethod(predicate)
     }

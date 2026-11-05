@@ -19,7 +19,7 @@ from fasthep_toolbench.tools import (
     run_registered_tool,
 )
 
-from fasthep_cli.logo_policy import FastHepCommand
+from fasthep_cli.logo_policy import FastHepCommand, logo_command
 
 tools_app = typer.Typer(no_args_is_help=True)
 
@@ -115,7 +115,8 @@ def tools_install_command(
 
 @tools_app.command(
     "run",
-    cls=FastHepCommand,
+    # --json may sit among the extra arguments forwarded to the tool, so look at both
+    cls=logo_command(lambda ctx: ctx.params["json_output"] or "--json" in ctx.args),
     context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
 )
 def tools_run_command(

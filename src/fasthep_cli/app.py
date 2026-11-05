@@ -66,7 +66,7 @@ def version_command() -> None:
 
 @app.command(
     "versions",
-    cls=logo_command(lambda params: params["display_format"] == DisplayFormats.JSON),
+    cls=logo_command(lambda ctx: ctx.params["display_format"] == DisplayFormats.JSON),
 )
 def versions_command(
     display_format: DisplayFormats = typer.Option(
@@ -134,7 +134,7 @@ app.command("make-plan", cls=FastHepCommand)(make_plan_command)
 app.command("compile", cls=FastHepCommand)(compile_command)
 app.command("run-plan", cls=FastHepCommand)(run_plan_command)
 app.command("run", cls=FastHepCommand)(run_command)
-app.command("diff", cls=logo_command(lambda params: params["json_output"]))(
+app.command("diff", cls=logo_command(lambda ctx: ctx.params["json_output"]))(
     diff_command
 )
 app.command("show-defaults", cls=FastHepCommand)(show_defaults_command)
