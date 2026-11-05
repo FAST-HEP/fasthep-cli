@@ -15,6 +15,7 @@ from typer.testing import CliRunner
 import fasthep_cli.app as cli_app
 from fasthep_cli.app import _is_json_diff_request, app
 from fasthep_cli.commands.diff import _exit_code, _selected_sections
+from fasthep_cli.testing import strip_ansi
 from tests._helpers import runner
 
 SHA = "a" * 64
@@ -636,3 +637,24 @@ def test_logo_is_printed_for_plain_diff_on_a_tty(
 
     assert result.exit_code == 0, result.output
     assert calls == ["logo"]
+
+
+def test_help_describes_options_and_exit_codes() -> None:
+    result = _invoke("--help")
+    text = strip_ansi(result.output)
+
+    assert result.exit_code == 0
+    for needle in ("--strict", "--json", "--section", "--ignore", "OLD", "NEW"):
+        assert needle in text
+    assert "provenance" in text
+    for code in ("0", "1", "2"):
+        assert f"{code}  " in text or f"{code}:" in text or f" {code} " in text
+    assert "plan-diff" in text
+
+
+def test_old_two_file_invocation_still_works(tmp_path: Path) -> None:
+    old, new = _pair(tmp_path, _plan(), _plan())
+
+    result = _invoke(str(old), str(new))
+
+    assert (result.exit_code, result.stdout) == (0, "Plans equal.\n")

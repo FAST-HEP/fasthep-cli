@@ -151,13 +151,54 @@ def _envelope(
 
 
 def diff_command(
-    old: Annotated[Path, typer.Argument(metavar="OLD")],
-    new: Annotated[Path, typer.Argument(metavar="NEW")],
-    strict: Annotated[bool, typer.Option("--strict")] = False,
-    json_output: Annotated[bool, typer.Option("--json")] = False,
-    section: Annotated[list[DiffSection] | None, typer.Option("--section")] = None,
-    ignore: Annotated[list[DiffSection] | None, typer.Option("--ignore")] = None,
+    old: Annotated[
+        Path,
+        typer.Argument(
+            metavar="OLD", help="Plan file, build directory or compile/ directory."
+        ),
+    ],
+    new: Annotated[
+        Path,
+        typer.Argument(
+            metavar="NEW", help="Plan file, build directory or compile/ directory."
+        ),
+    ],
+    strict: Annotated[
+        bool,
+        typer.Option(
+            "--strict",
+            help="Exit 1 for any difference, including provenance (default: ignore provenance).",
+        ),
+    ] = False,
+    json_output: Annotated[
+        bool,
+        typer.Option(
+            "--json", help="Print one versioned JSON document instead of text."
+        ),
+    ] = False,
+    section: Annotated[
+        list[DiffSection] | None,
+        typer.Option("--section", help="Only compare this section; repeatable."),
+    ] = None,
+    ignore: Annotated[
+        list[DiffSection] | None,
+        typer.Option(
+            "--ignore", help="Leave this section out (wins over --strict); repeatable."
+        ),
+    ] = None,
 ) -> None:
+    """Compare two compiled plans and report what changed.
+
+    Provenance (recorded origin and derivation history, such as moved files) is reported
+    separately from the analysis: by default plans that differ only in provenance count as equal.
+    OLD and NEW may be plan files, build directories or compile/ directories.
+
+    Exit status: 0 equal under the selected sections and policy, 1 differences count under
+    that policy, 2 invalid input, unreadable plan, ambiguous directory or comparison failure.
+
+    The model (sections, matching, moves, schema) is documented in fasthep-flow:
+    docs/reference/plan-diff.md.
+    """
     included, ignored = _selected_sections(section or [], ignore or [])
     resolved: dict[str, str | None] = {"old": None, "new": None}
 
