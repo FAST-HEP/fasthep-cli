@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import copy
+import json
+import sys
 from pathlib import Path
 from typing import Any
 
 import pytest
 import yaml
-from hepflow.api import DiffSection, InputNotFound, diff_plan_files
+from hepflow.api import DiffSection, PlanDiffError, diff_plan_files
 from typer import BadParameter
+from typer.testing import CliRunner
 
-from fasthep_cli.app import app
+import fasthep_cli.app as cli_app
+from fasthep_cli.app import _is_json_diff_request, app
 from fasthep_cli.commands.diff import _exit_code, _selected_sections
 from tests._helpers import runner
 
@@ -161,9 +165,9 @@ def test_section_provenance_alone_needs_strict(tmp_path: Path) -> None:
 def test_path_arguments_are_not_checked_by_typer(tmp_path: Path) -> None:
     result = _invoke(str(tmp_path / "missing.yaml"), str(tmp_path / "also.yaml"))
 
-    # Typer no longer rejects the path; Flow raises (turned into exit 2 in a later task).
-    assert isinstance(result.exception, InputNotFound)
-    assert "does not exist" not in result.output
+    assert result.exit_code == 2
+    assert "plan input not found" in result.stderr
+    assert "does not exist" not in result.stderr
 
 
 def _with_params(plan: dict[str, Any], **params: Any) -> dict[str, Any]:
@@ -318,3 +322,317 @@ def test_external_path_values_carry_their_label(tmp_path: Path) -> None:
 
     assert '    old: "wf.yaml"\n' in out
     assert '    new: "/elsewhere/wf.yaml" (external)\n' in out
+
+
+# -- JSON envelope, errors and logo ---------------------------------------------
+
+
+def _json(result: Any) -> dict[str, Any]:
+    assert result.stderr == "", result.stderr
+    document = json.loads(result.stdout)
+    assert isinstance(document, dict)
+    return document
+
+
+def _build(
+    tmp_path: Path, names: list[str], plan: dict[str, Any] | None = None
+) -> Path:
+    root = tmp_path / "build"
+    for name in names:
+        directory = root / "compile" / name
+        directory.mkdir(parents=True)
+        (directory / "plan.yaml").write_text(
+            yaml.safe_dump(plan or _plan(), sort_keys=False), encoding="utf-8"
+        )
+    summary = {
+        "variations": [
+            {"name": n, "is_nominal": n == "nominal", "plan": f"compile/{n}/plan.yaml"}
+            for n in names
+        ]
+    }
+    (root / "compile" / "systematics.yaml").write_text(
+        yaml.safe_dump(summary), encoding="utf-8"
+    )
+    return root
+
+
+def test_json_equal_envelope_is_complete(tmp_path: Path) -> None:
+    old, new = _pair(tmp_path, _plan(), _plan())
+
+    document = _json(_invoke("--json", str(old), str(new)))
+
+    assert sorted(document) == [
+        "cli_schema_version",
+        "command",
+        "error",
+        "exit_code",
+        "inputs",
+        "policy",
+        "report",
+        "resolved",
+        "scope",
+        "status",
+    ]
+    assert document["cli_schema_version"] == 1
+    assert document["command"] == "diff"
+    assert document["inputs"] == {"old": str(old), "new": str(new)}
+    assert document["resolved"] == {"old": str(old), "new": str(new)}
+    assert document["scope"] == {
+        "include": [s.value for s in DiffSection],
+        "ignore": [],
+    }
+    assert document["policy"] == "semantic"
+    assert (document["status"], document["exit_code"], document["error"]) == (
+        "equal",
+        0,
+        None,
+    )
+    assert {"entries", "counts", "warnings", "equal", "semantically_equal"} <= set(
+        document["report"]
+    )
+
+
+def test_json_difference_envelope_and_exit_one(tmp_path: Path) -> None:
+    old, new = _pair(tmp_path, *_semantic())
+
+    result = _invoke("--json", "--strict", str(old), str(new))
+    document = _json(result)
+
+    assert result.exit_code == 1
+    assert (document["status"], document["exit_code"], document["policy"]) == (
+        "different",
+        1,
+        "strict",
+    )
+    assert document["report"]["entries"][0]["section"] == "graph"
+
+
+def test_json_provenance_only_default_exit_zero_keeps_entries(tmp_path: Path) -> None:
+    old, new = _pair(tmp_path, *_provenance_only())
+
+    result = _invoke("--json", str(old), str(new))
+    document = _json(result)
+
+    assert result.exit_code == 0
+    assert document["status"] == "equal"
+    assert document["report"]["equal"] is False
+    assert document["report"]["semantically_equal"] is True
+    assert len(document["report"]["entries"]) == 2
+
+
+def test_json_scope_and_scoped_report(tmp_path: Path) -> None:
+    old, new = _pair(tmp_path, *_provenance_only())
+
+    document = _json(
+        _invoke(
+            "--json",
+            "--ignore",
+            "provenance",
+            "--ignore",
+            "provenance",
+            str(old),
+            str(new),
+        )
+    )
+
+    assert document["scope"]["ignore"] == ["provenance"]
+    assert document["report"]["entries"] == []
+    assert document["report"]["scope"]["ignore"] == ["provenance"]
+
+
+def test_json_is_deterministic_and_key_sorted(tmp_path: Path) -> None:
+    old, new = _pair(tmp_path, *_semantic())
+
+    first = _invoke("--json", str(old), str(new)).stdout
+    second = _invoke("--json", str(old), str(new)).stdout
+
+    assert first == second
+    assert first.rstrip("\n") == json.dumps(json.loads(first), indent=2, sort_keys=True)
+
+
+def test_json_missing_input(tmp_path: Path) -> None:
+    result = _invoke("--json", str(tmp_path / "no"), str(tmp_path / "no2"))
+    document = _json(result)
+
+    assert result.exit_code == 2
+    assert document["status"] == "error"
+    assert document["report"] is None
+    assert document["error"]["code"] == "input_not_found"
+    assert document["resolved"] == {"old": None, "new": None}
+
+
+def test_json_no_plan_found(tmp_path: Path) -> None:
+    (tmp_path / "empty" / "compile").mkdir(parents=True)
+    other = _write(tmp_path, "p.yaml", _plan())
+
+    document = _json(_invoke("--json", str(other), str(tmp_path / "empty")))
+
+    assert document["error"]["code"] == "no_plan_found"
+    assert document["resolved"] == {"old": str(other), "new": None}
+
+
+def test_json_ambiguous_plans_lists_candidates(tmp_path: Path) -> None:
+    build = _build(tmp_path, ["nominal", "up"])
+    other = _write(tmp_path, "p.yaml", _plan())
+
+    result = _invoke("--json", str(build), str(other))
+    document = _json(result)
+
+    assert result.exit_code == 2
+    assert document["error"]["code"] == "ambiguous_plans"
+    assert [c["name"] for c in document["error"]["candidates"]] == ["nominal", "up"]
+    assert document["error"]["candidates"][0]["path"].endswith(
+        "compile/nominal/plan.yaml"
+    )
+    assert "explicit plan" in document["error"]["message"]
+
+
+def test_json_invalid_plan(tmp_path: Path) -> None:
+    bad = tmp_path / "bad.yaml"
+    bad.write_text("- 1\n- 2\n", encoding="utf-8")
+    good = _write(tmp_path, "good.yaml", _plan())
+
+    document = _json(_invoke("--json", str(good), str(bad)))
+
+    assert document["error"]["code"] == "invalid_plan"
+
+
+def test_json_comparison_failed_for_plain_flow_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def boom(*_args: object) -> None:
+        message = "boom"
+        raise PlanDiffError(message)
+
+    monkeypatch.setattr("fasthep_cli.commands.diff.diff_plan_files", boom)
+    old, new = _pair(tmp_path, _plan(), _plan())
+
+    result = _invoke("--json", str(old), str(new))
+    document = _json(result)
+
+    assert (result.exit_code, document["error"]["code"]) == (2, "comparison_failed")
+
+
+def test_human_errors_go_to_stderr_with_exit_two(tmp_path: Path) -> None:
+    build = _build(tmp_path, ["nominal", "up"])
+    other = _write(tmp_path, "p.yaml", _plan())
+
+    for args in (
+        (str(tmp_path / "no"), str(other)),
+        (str(build), str(other)),
+    ):
+        result = _invoke(*args)
+        assert result.exit_code == 2
+        assert result.stdout == ""
+        assert result.stderr.startswith("error: ")
+
+
+def test_json_warnings_are_in_the_envelope_and_stderr_is_empty(tmp_path: Path) -> None:
+    old = _plan()
+    new = copy.deepcopy(old)
+    new["provenance"]["compilation"]["flow_version"] = "2.0"
+    paths = _pair(tmp_path, old, new)
+
+    document = _json(_invoke("--json", *map(str, paths)))
+
+    assert [w["code"] for w in document["report"]["warnings"]] == [
+        "flow_version_mismatch"
+    ]
+
+
+def test_usage_error_with_json_stays_text_on_stderr(tmp_path: Path) -> None:
+    old, new = _pair(tmp_path, _plan(), _plan())
+
+    result = _invoke("--json", "--section", "nope", str(old), str(new))
+
+    assert result.exit_code == 2
+    assert result.stdout == ""
+    assert "nope" in result.stderr
+
+
+def test_file_and_build_directory_inputs(tmp_path: Path) -> None:
+    build = _build(tmp_path, ["only"])
+    plan_file = _write(tmp_path, "p.yaml", _plan())
+
+    for directory in (build, build / "compile"):
+        for args in (
+            (str(plan_file), str(directory)),
+            (str(directory), str(plan_file)),
+        ):
+            result = _invoke("--json", *args)
+            document = _json(result)
+            assert result.exit_code == 0
+            assert document["resolved"]["old"] is not None
+    assert document["resolved"]["new"].endswith("p.yaml")
+
+
+def test_delegates_to_flow_api_with_resolved_paths(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    old, new = _pair(tmp_path, _plan(), _plan())
+    resolved_old, resolved_new = tmp_path / "ro.yaml", tmp_path / "rn.yaml"
+    seen: dict[str, Any] = {"resolve": [], "diff": []}
+
+    def fake_resolve(path: Path) -> Path:
+        seen["resolve"].append(path)
+        return resolved_old if path == old else resolved_new
+
+    def fake_diff(a: Path, b: Path) -> Any:
+        seen["diff"].append((a, b))
+        return diff_plan_files(old, new)
+
+    monkeypatch.setattr("fasthep_cli.commands.diff.resolve_plan_input", fake_resolve)
+    monkeypatch.setattr("fasthep_cli.commands.diff.diff_plan_files", fake_diff)
+
+    result = _invoke(str(old), str(new))
+
+    assert result.exit_code == 0
+    assert seen["resolve"] == [old, new]
+    assert seen["diff"] == [(resolved_old, resolved_new)]
+
+
+@pytest.mark.parametrize(
+    ("argv", "expected"),
+    [
+        (["diff", "--json", "a", "b"], True),
+        (["--quiet", "diff", "a", "b", "--json"], True),
+        (["diff", "a", "b"], False),
+        (["versions", "--json"], False),
+        (["diff", "--", "--json"], False),
+    ],
+)
+def test_is_json_diff_request(argv: list[str], expected: bool) -> None:
+    assert _is_json_diff_request(argv) is expected
+
+
+def test_logo_is_not_printed_for_diff_json(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fail_logo() -> None:
+        pytest.fail("logo must not be printed before diff --json")
+
+    old, new = _pair(tmp_path, _plan(), _plan())
+    monkeypatch.delenv("FASTHEP_NO_LOGO", raising=False)
+    monkeypatch.setattr(cli_app, "_stdout_is_tty", lambda: True)
+    monkeypatch.setattr(sys, "argv", ["fasthep", "diff", "--json", str(old), str(new)])
+    monkeypatch.setattr(cli_app, "_maybe_print_logo", fail_logo)
+
+    result = CliRunner().invoke(app, ["diff", "--json", str(old), str(new)])
+
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout)["command"] == "diff"
+
+
+def test_logo_is_printed_for_plain_diff_on_a_tty(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[str] = []
+    old, new = _pair(tmp_path, _plan(), _plan())
+    monkeypatch.delenv("FASTHEP_NO_LOGO", raising=False)
+    monkeypatch.setattr(sys, "argv", ["fasthep", "diff", str(old), str(new)])
+    monkeypatch.setattr(cli_app, "_maybe_print_logo", lambda: calls.append("logo"))
+
+    result = CliRunner().invoke(app, ["diff", str(old), str(new)])
+
+    assert result.exit_code == 0, result.output
+    assert calls == ["logo"]

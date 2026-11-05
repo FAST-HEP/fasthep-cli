@@ -49,7 +49,7 @@ def _callback(
 ) -> None:
     if ctx.invoked_subcommand is None:
         return
-    if quiet or _is_json_versions_request():
+    if quiet or _is_json_versions_request() or _is_json_diff_request(sys.argv[1:]):
         return
     _maybe_print_logo()
 
@@ -137,13 +137,24 @@ app.add_typer(tools_app, name="tools")
 def _maybe_print_logo() -> None:
     if os.environ.get("FASTHEP_NO_LOGO"):
         return
-    if not sys.stdout.isatty():
+    if not _stdout_is_tty():
         return
     try:
         logo_module = import_module("fasthep_cli.logo")
         typer.echo(logo_module.get_logo())
     except Exception:
         return
+
+
+def _stdout_is_tty() -> bool:
+    return sys.stdout.isatty()
+
+
+def _is_json_diff_request(args: list[str]) -> bool:
+    """True for ``fasthep diff ... --json``: stdout must then hold only the JSON document."""
+    if "--" in args:
+        args = args[: args.index("--")]
+    return "diff" in args and "--json" in args
 
 
 def _is_json_versions_request() -> bool:
