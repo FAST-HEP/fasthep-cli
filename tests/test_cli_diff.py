@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -658,3 +659,87 @@ def test_old_two_file_invocation_still_works(tmp_path: Path) -> None:
     result = _invoke(str(old), str(new))
 
     assert (result.exit_code, result.stdout) == (0, "Plans equal.\n")
+
+
+@pytest.mark.skipif(os.geteuid() == 0, reason="root can read everything")
+def test_unreadable_plan_file_is_an_operational_error_not_a_usage_error(
+    tmp_path: Path,
+) -> None:
+    old, new = _pair(tmp_path, _plan(), _plan())
+    old.chmod(0o000)
+    try:
+        result = _invoke("--json", str(old), str(new))
+    finally:
+        old.chmod(0o600)
+
+    document = _json(result)
+    assert result.exit_code == 2
+    assert document["status"] == "error"
+    assert document["error"]["code"] in {"invalid_plan", "input_not_found"}
+
+
+def test_unexpected_flow_exception_is_comparison_failed_exit_two(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def boom(*_args: object) -> None:
+        message = "kaboom"
+        raise RuntimeError(message)
+
+    monkeypatch.setattr("fasthep_cli.commands.diff.diff_plan_files", boom)
+    old, new = _pair(tmp_path, _plan(), _plan())
+
+    json_result = _invoke("--json", str(old), str(new))
+    human_result = _invoke(str(old), str(new))
+
+    document = _json(json_result)
+    assert (json_result.exit_code, document["error"]["code"]) == (
+        2,
+        "comparison_failed",
+    )
+    assert "kaboom" in document["error"]["message"]
+    assert human_result.exit_code == 2
+    assert human_result.stderr.startswith("error: ")
+
+
+def test_relocated_path_entries_show_the_raw_values_when_displays_are_equal(
+    tmp_path: Path,
+) -> None:
+    old = _plan()
+    new = copy.deepcopy(old)
+    new["context"].update(project_root="/b", workflow_path="/b/wf.yaml")
+    new["provenance"]["root"] = "/b"
+    new["provenance"]["inputs"][0]["resolved"] = "/b/wf.yaml"
+    paths = _pair(tmp_path, old, new)
+
+    out = _invoke(*map(str, paths)).stdout
+
+    assert (
+        '  changed  context.workflow_path\n    old: "/a/wf.yaml"\n    new: "/b/wf.yaml"\n'
+        in out
+    )
+    assert out.count('old: "wf.yaml"') == 0
+
+
+def test_moved_entry_with_unchanged_resolved_display_shows_declared(
+    tmp_path: Path,
+) -> None:
+    old = _plan()
+    new = copy.deepcopy(old)
+    row = new["provenance"]["inputs"][0]
+    row["declared"] = "../wf.yaml"
+    paths = _pair(tmp_path, old, new)
+
+    out = _invoke(*map(str, paths)).stdout
+
+    assert "  moved  " in out
+    assert "    from: wf.yaml\n    to: ../wf.yaml\n" in out
+
+
+def test_moved_entry_shows_labels_for_external_paths(tmp_path: Path) -> None:
+    old, new = _moved_pair()
+    new["provenance"]["inputs"][0]["resolved"] = "/zzz/q.yaml"
+    paths = _pair(tmp_path, old, new)
+
+    out = _invoke(*map(str, paths)).stdout
+
+    assert "    to: /zzz/q.yaml (external)\n" in out

@@ -57,24 +57,35 @@ def _format_value(value: object) -> list[str]:
     return [json.dumps(value)]
 
 
+def _label_suffix(display: dict[str, Any]) -> str:
+    return "" if display["label"] == "relative" else f" ({display['label']})"
+
+
 def _value_lines(
     label: str, value: object, display: dict[str, Any] | None
 ) -> list[str]:
     if display is not None:
-        suffix = "" if display["label"] in ("relative",) else f" ({display['label']})"
-        return [f"    {label}: {json.dumps(display['value'])}{suffix}"]
+        return [f"    {label}: {json.dumps(display['value'])}{_label_suffix(display)}"]
     lines = _format_value(value)
     if len(lines) == 1:
         return [f"    {label}: {lines[0]}"]
     return [f"    {label}:", *(f"      {line}" for line in lines)]
 
 
-def _moved_path(display: dict[str, Any] | None, row: object) -> str:
-    if display:
-        shown = display.get("resolved") or display.get("declared")
-        if shown:
-            return str(shown["value"])
-    return str(row.get("declared")) if isinstance(row, dict) else ""
+def _moved_pair(entry: PlanDiffEntry) -> tuple[str, str]:
+    """The paths a moved input went from and to: the first field whose display changed."""
+    old_display, new_display = entry.old_display or {}, entry.new_display or {}
+    for field in ("resolved", "declared"):
+        old_shown, new_shown = old_display.get(field), new_display.get(field)
+        if old_shown and new_shown and old_shown != new_shown:
+            return (
+                f"{old_shown['value']}{_label_suffix(old_shown)}",
+                f"{new_shown['value']}{_label_suffix(new_shown)}",
+            )
+    old_row = entry.old if isinstance(entry.old, dict) else {}
+    new_row = entry.new if isinstance(entry.new, dict) else {}
+    key = "resolved" if "resolved" in old_row else "declared"
+    return str(old_row.get(key, "")), str(new_row.get(key, ""))
 
 
 def _entry_lines(entry: PlanDiffEntry) -> list[str]:
@@ -83,13 +94,16 @@ def _entry_lines(entry: PlanDiffEntry) -> list[str]:
         head += " [fallback alignment]"
     lines = [head]
     if entry.kind is DiffKind.MOVED:
-        lines.append(f"    from: {_moved_path(entry.old_display, entry.old)}")
-        lines.append(f"    to: {_moved_path(entry.new_display, entry.new)}")
-        return lines
+        old_path, new_path = _moved_pair(entry)
+        return [*lines, f"    from: {old_path}", f"    to: {new_path}"]
+    # Equal displays (a pure relocation) would print identical lines: show the raw values.
+    old_display, new_display = entry.old_display, entry.new_display
+    if old_display is not None and old_display == new_display:
+        old_display = new_display = None
     if entry.old_present and entry.kind is not DiffKind.ADDED:
-        lines += _value_lines("old", entry.old, entry.old_display)
+        lines += _value_lines("old", entry.old, old_display)
     if entry.new_present and entry.kind is not DiffKind.REMOVED:
-        lines += _value_lines("new", entry.new, entry.new_display)
+        lines += _value_lines("new", entry.new, new_display)
     return lines
 
 
@@ -154,13 +168,17 @@ def diff_command(
     old: Annotated[
         Path,
         typer.Argument(
-            metavar="OLD", help="Plan file, build directory or compile/ directory."
+            metavar="OLD",
+            readable=False,
+            help="Plan file, build directory or compile/ directory.",
         ),
     ],
     new: Annotated[
         Path,
         typer.Argument(
-            metavar="NEW", help="Plan file, build directory or compile/ directory."
+            metavar="NEW",
+            readable=False,
+            help="Plan file, build directory or compile/ directory.",
         ),
     ],
     strict: Annotated[
@@ -224,7 +242,12 @@ def diff_command(
         new_plan = resolve_plan_input(new)
         resolved["new"] = str(new_plan)
         report = diff_plan_files(old_plan, new_plan)
-    except PlanDiffError as error:
+    except Exception as exc:
+        error = (
+            exc
+            if isinstance(exc, PlanDiffError)
+            else PlanDiffError(f"{type(exc).__name__}: {exc}")
+        )
         if json_output:
             typer.echo(document(2, None, error))
         else:
