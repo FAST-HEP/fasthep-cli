@@ -10,6 +10,8 @@ from hepflow.api import (
     provenance_summary_text,
 )
 
+from fasthep_cli.logo_policy import FastHepCommand
+
 provenance_app = typer.Typer(no_args_is_help=True)
 
 
@@ -19,7 +21,7 @@ class ProvenanceGraphFormat(StrEnum):
     json = "json"
 
 
-@provenance_app.command("summary")
+@provenance_app.command("summary", cls=FastHepCommand)
 def provenance_summary_command(
     outdir: Path = typer.Argument(..., file_okay=False),
 ) -> None:
@@ -29,7 +31,7 @@ def provenance_summary_command(
         raise typer.BadParameter(str(exc)) from exc
 
 
-@provenance_app.command("show")
+@provenance_app.command("show", cls=FastHepCommand)
 def provenance_show_command(
     artifact_path: Path = typer.Argument(..., dir_okay=False),
 ) -> None:
@@ -39,7 +41,7 @@ def provenance_show_command(
         raise typer.BadParameter(str(exc)) from exc
 
 
-@provenance_app.command("graph")
+@provenance_app.command("graph", cls=FastHepCommand)
 def provenance_graph_command(
     artifact_path: Path = typer.Argument(..., dir_okay=False),
     output_format: ProvenanceGraphFormat = typer.Option(
