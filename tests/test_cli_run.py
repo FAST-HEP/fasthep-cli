@@ -188,6 +188,52 @@ def test_run_rejects_dataset_outside_listing_mode(tmp_path: Path) -> None:
     assert not (tmp_path / "build").exists()
 
 
+def test_partition_listing_reports_unknown_dataset_as_cli_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    workflow = write_workflow(tmp_path)
+
+    def fail_listing(*args: object, **kwargs: object) -> object:
+        del args, kwargs
+        message = "Unknown dataset 'missing'; available datasets: sample."
+        raise ValueError(message)
+
+    monkeypatch.setattr(run_command_module, "list_workflow_partitions", fail_listing)
+
+    result = runner.invoke(
+        app,
+        ["run", str(workflow), "--list-partitions", "--dataset", "missing"],
+    )
+
+    assert result.exit_code == 2
+    output = strip_ansi(result.output)
+    assert "Unknown dataset 'missing'" in output
+    assert "sample" in output
+    assert not isinstance(result.exception, ValueError)
+
+
+def test_partition_listing_reports_invalid_chunk_size_as_cli_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    workflow = write_workflow(tmp_path)
+
+    def fail_listing(*args: object, **kwargs: object) -> object:
+        del args, kwargs
+        message = "chunk size must be a positive integer"
+        raise ValueError(message)
+
+    monkeypatch.setattr(run_command_module, "list_workflow_partitions", fail_listing)
+
+    result = runner.invoke(
+        app,
+        ["run", str(workflow), "--list-partitions", "--chunk-size", "0"],
+    )
+
+    assert result.exit_code == 2
+    assert "chunk size must be a positive integer" in strip_ansi(result.output)
+    assert not isinstance(result.exception, ValueError)
+
+
 @pytest.mark.parametrize(
     ("selector", "expected"),
     [

@@ -28,11 +28,14 @@ def run_command(
     ),
 ) -> None:
     if list_partitions:
-        listing = list_workflow_partitions(
-            workflow_yaml,
-            dataset=dataset,
-            chunk_size=chunk_size,
-        )
+        try:
+            listing = list_workflow_partitions(
+                workflow_yaml,
+                dataset=dataset,
+                chunk_size=chunk_size,
+            )
+        except ValueError as exc:
+            raise typer.BadParameter(str(exc)) from exc
         typer.echo(json.dumps(listing))
         return
     if dataset is not None:
