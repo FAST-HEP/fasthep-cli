@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -96,6 +97,95 @@ def test_run_command_smoke(tmp_path: Path) -> None:
     assert (outdir / "compile" / "normalized.yaml").exists()
     assert (outdir / "compile" / "plan.yaml").exists()
     assert (outdir / "run_summary.yaml").exists()
+
+
+def test_run_lists_partitions_as_json_without_outdir_or_execution(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    workflow = write_workflow(tmp_path)
+    calls: list[tuple[Path, str | None, int | None]] = []
+
+    def fake_list_workflow_partitions(
+        path: Path, *, dataset: str | None, chunk_size: int | None
+    ) -> list[dict[str, object]]:
+        calls.append((path, dataset, chunk_size))
+        return [
+            {
+                "dataset": "sample",
+                "chunk_size": 29,
+                "n_partitions": 5,
+                "n_files": 1,
+                "n_uncounted": 0,
+            }
+        ]
+
+    def fail_run(*args: object, **kwargs: object) -> object:
+        del args, kwargs
+        message = "listing must not run the workflow"
+        raise AssertionError(message)
+
+    monkeypatch.setattr(
+        run_command_module,
+        "list_workflow_partitions",
+        fake_list_workflow_partitions,
+        raising=False,
+    )
+    monkeypatch.setattr(run_command_module, "run_workflow_file", fail_run)
+
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            str(workflow),
+            "--list-partitions",
+            "--dataset",
+            "sample",
+            "--chunk-size",
+            "29",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.output) == [
+        {
+            "dataset": "sample",
+            "chunk_size": 29,
+            "n_partitions": 5,
+            "n_files": 1,
+            "n_uncounted": 0,
+        }
+    ]
+    assert calls == [(workflow, "sample", 29)]
+    assert not (tmp_path / "build").exists()
+
+
+def test_run_still_requires_outdir_when_not_listing(tmp_path: Path) -> None:
+    workflow = write_workflow(tmp_path)
+
+    result = runner.invoke(app, ["run", str(workflow)])
+
+    assert result.exit_code != 0
+    assert "--outdir" in strip_ansi(result.output)
+
+
+def test_run_rejects_dataset_outside_listing_mode(tmp_path: Path) -> None:
+    workflow = write_workflow(tmp_path)
+
+    result = runner.invoke(
+        app,
+        [
+            "run",
+            str(workflow),
+            "--outdir",
+            str(tmp_path / "build"),
+            "--dataset",
+            "sample",
+        ],
+    )
+
+    assert result.exit_code != 0
+    assert "--list-partitions" in strip_ansi(result.output)
+    assert not (tmp_path / "build").exists()
 
 
 @pytest.mark.parametrize(
