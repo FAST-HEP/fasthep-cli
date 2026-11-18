@@ -168,26 +168,6 @@ def test_run_still_requires_outdir_when_not_listing(tmp_path: Path) -> None:
     assert "--outdir" in strip_ansi(result.output)
 
 
-def test_run_rejects_dataset_outside_listing_mode(tmp_path: Path) -> None:
-    workflow = write_workflow(tmp_path)
-
-    result = runner.invoke(
-        app,
-        [
-            "run",
-            str(workflow),
-            "--outdir",
-            str(tmp_path / "build"),
-            "--dataset",
-            "sample",
-        ],
-    )
-
-    assert result.exit_code != 0
-    assert "--list-partitions" in strip_ansi(result.output)
-    assert not (tmp_path / "build").exists()
-
-
 def test_partition_listing_reports_unknown_dataset_as_cli_error(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

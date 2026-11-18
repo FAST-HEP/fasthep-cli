@@ -6,17 +6,24 @@ import typer
 from hepflow.api import compile_workflow_file
 from hepflow.build_layout import compile_dir, graph_dir, normalized_path, plan_path
 
+from fasthep_cli.partition import dataset_option, per_dataset_option, usage_errors
+
 
 def compile_command(
     workflow_yaml: Path = typer.Argument(..., exists=True, dir_okay=False),
     outdir: Path = typer.Option(..., "--outdir", file_okay=False),
     chunk_size: int | None = typer.Option(None, "--chunk-size"),
+    dataset: str | None = dataset_option(),
+    per_dataset: bool | None = per_dataset_option(),
 ) -> None:
-    compile_workflow_file(
-        workflow_yaml,
-        outdir=outdir,
-        chunk_size=chunk_size,
-    )
+    with usage_errors():
+        compile_workflow_file(
+            workflow_yaml,
+            outdir=outdir,
+            chunk_size=chunk_size,
+            dataset=dataset,
+            per_dataset=per_dataset,
+        )
     typer.echo(f"Wrote {normalized_path(outdir)}")
     systematics_path = compile_dir(outdir) / "systematics.yaml"
     if systematics_path.exists():

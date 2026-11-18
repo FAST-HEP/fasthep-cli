@@ -1,6 +1,36 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
+from typing import Any
+
 import typer
+
+DATASET_HELP = (
+    "Select one dataset of a per-dataset workflow; partition numbers then count "
+    "inside it."
+)
+PER_DATASET_HELP = (
+    "Enable per-dataset mode (overrides execution.partitioning.per_dataset)."
+)
+
+
+def dataset_option() -> Any:
+    return typer.Option(None, "--dataset", help=DATASET_HELP)
+
+
+def per_dataset_option() -> Any:
+    # None keeps the workflow's own setting; only the flag overrides it.
+    return typer.Option(None, "--per-dataset", help=PER_DATASET_HELP)
+
+
+@contextmanager
+def usage_errors() -> Iterator[None]:
+    """Report the ValueErrors Flow raises for bad dataset or partition input."""
+    try:
+        yield
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc)) from exc
 
 
 def parse_partition_numbers(value: str | None) -> list[int] | None:
