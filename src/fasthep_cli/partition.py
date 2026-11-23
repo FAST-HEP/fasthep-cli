@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Any
 
 import typer
+from hepflow.api import PublishConflict
 
 DATASET_HELP = (
     "Select one dataset of a per-dataset workflow; partition numbers then count "
@@ -26,11 +28,28 @@ def per_dataset_option() -> Any:
 
 @contextmanager
 def usage_errors() -> Iterator[None]:
-    """Report the ValueErrors Flow raises for bad dataset or partition input."""
+    """Report the errors Flow raises for bad dataset or partition input, and for a conflict.
+
+    A ValueError is a usage error (exit code 2). A ``PublishConflict`` (a shared plan or a run
+    binding that another plan or manifest already owns) is a failed run, not a bad option: its
+    message says what differs and what to do, so it is shown without a traceback (exit code 1).
+    """
     try:
         yield
     except ValueError as exc:
         raise typer.BadParameter(str(exc)) from exc
+    except PublishConflict as exc:
+        typer.echo(f"Error: {exc}", err=True)
+        raise typer.Exit(1) from exc
+
+
+def echo_partition_runs(summary: dict[str, Any]) -> None:
+    """Name the run roots of a per-dataset run; there is one summary per partition below them."""
+    runs = [str(path) for path in summary.get("partition_runs") or []]
+    if not runs:
+        return
+    roots = list(dict.fromkeys(str(Path(path).parent) for path in runs))
+    typer.echo(f"Partition records: {len(runs)} (one summary each) below {', '.join(roots)}")
 
 
 def parse_partition_numbers(value: str | None) -> list[int] | None:

@@ -9,6 +9,7 @@ from hepflow.build_layout import compile_dir
 
 from fasthep_cli.partition import (
     dataset_option,
+    echo_partition_runs,
     parse_partition_numbers,
     per_dataset_option,
     usage_errors,
@@ -71,3 +72,4 @@ def run_command(
     typer.echo(f"Backend: {result.backend}.{result.strategy}")
     typer.echo(f"Summary: {result.summary['summary_path']}")
     typer.echo(f"Artifacts: {result.summary['artifacts_path']}")
+    echo_partition_runs(result.summary)
