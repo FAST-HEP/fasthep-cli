@@ -5,7 +5,12 @@ from pathlib import Path
 import typer
 from hepflow.api import run_plan_file
 
-from fasthep_cli.partition import dataset_option, parse_partition_numbers, usage_errors
+from fasthep_cli.partition import (
+    dataset_option,
+    echo_partition_runs,
+    parse_partition_numbers,
+    usage_errors,
+)
 from fasthep_cli.progress import TerminalProgressSink
 
 
@@ -45,3 +50,4 @@ def run_plan_command(
     typer.echo(f"Backend: {result.backend}.{result.strategy}")
     typer.echo(f"Summary: {result.summary['summary_path']}")
     typer.echo(f"Artifacts: {result.summary['artifacts_path']}")
+    echo_partition_runs(result.summary)

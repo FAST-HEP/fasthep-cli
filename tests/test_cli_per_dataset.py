@@ -4,6 +4,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from hepflow.api import PublishConflict
 
 import fasthep_cli.commands.compile as compile_command_module
 import fasthep_cli.commands.make_plan as make_plan_command_module
@@ -222,3 +223,52 @@ def test_run_plan_reports_api_value_errors_as_usage_errors(
 
     assert result.exit_code == 2
     assert "compiled with chunk size 2" in strip_ansi(result.output)
+
+
+def test_run_plan_reports_a_binding_conflict_without_a_traceback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def fail(*args: object, **kwargs: object) -> SimpleNamespace:
+        del args, kwargs
+        message = "runs/a/binding.json binds this run root to another plan (plan_hash: 'x')"
+        raise PublishConflict(message)
+
+    monkeypatch.setattr(run_plan_command_module, "run_plan_file", fail)
+    plan = write_empty_plan(tmp_path)
+
+    result = runner.invoke(app, ["run-plan", str(plan), "--dataset", "a"])
+
+    assert result.exit_code == 1
+    assert "binds this run root to another plan" in strip_ansi(result.output)
+    assert "Traceback" not in result.output
+    assert isinstance(result.exception, SystemExit)
+
+
+def test_run_plan_names_the_run_roots_of_a_per_dataset_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run = fake_run_result(tmp_path / "build")
+    run.summary["partition_runs"] = [
+        str(tmp_path / "build" / "runs" / "a" / "1"),
+        str(tmp_path / "build" / "runs" / "a" / "2"),
+    ]
+    monkeypatch.setattr(run_plan_command_module, "run_plan_file", _record([], run))
+    plan = write_empty_plan(tmp_path)
+
+    result = runner.invoke(app, ["run-plan", str(plan), "--dataset", "a"])
+
+    output = strip_ansi(result.output)
+    assert result.exit_code == 0, output
+    assert f"Partition records: 2 (one summary each) below {tmp_path / 'build' / 'runs' / 'a'}" in output
+
+
+def test_run_plan_without_partition_records_prints_no_extra_line(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        run_plan_command_module, "run_plan_file", _record([], fake_run_result(tmp_path))
+    )
+
+    result = runner.invoke(app, ["run-plan", str(write_empty_plan(tmp_path))])
+
+    assert "Partition records" not in result.output
